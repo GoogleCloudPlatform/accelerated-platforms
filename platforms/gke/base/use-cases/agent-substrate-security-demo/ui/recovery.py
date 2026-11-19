@@ -125,22 +125,37 @@ def api_seed_clean_buddy() -> dict[str, Any]:
         restored_state.get("approvalPolicy") != "REQUIRE_HUMAN_APPROVAL"
         or restored_state.get("diskPolicy") != "REQUIRE_HUMAN_APPROVAL"
     ):
-        seed_resp = kube.http_json(
-            f"{kube.GATEWAY_URL}/chat/gemini-agent",
-            method="POST",
-            body={
-                "message": (
-                    "Set our runtime approval policy to REQUIRE_HUMAN_APPROVAL "
-                    "using set_approval_policy."
-                )
-            },
-            timeout=30.0,
+        _, _, tag_rc = kube.run_cmd(
+            [
+                "kubectl",
+                "ate",
+                "get",
+                "tag",
+                "clean-checkpoint-tag",
+                "-a",
+                kube.ATESPACE,
+            ],
+            timeout=10,
         )
-        if seed_resp.get("error"):
-            raise kube.UpstreamCommandError(
-                f"Failed to seed REQUIRE_HUMAN_APPROVAL: {seed_resp['error']}"
+        if tag_rc == 0:
+            _, clone_out = probes.recreate_actor_from_tag("gemini-agent")
+            rev_log = "\n".join(x for x in (rev_log, clone_out) if x)
+        else:
+            seed_msg = (
+                "Set our runtime approval policy to REQUIRE_HUMAN_APPROVAL "
+                "using set_approval_policy."
             )
-        reply = str(seed_resp.get("reply") or "")
+            seed_resp = kube.http_json(
+                f"{kube.GATEWAY_URL}/chat/gemini-agent",
+                method="POST",
+                body={"message": seed_msg},
+                timeout=30.0,
+            )
+            if seed_resp.get("error"):
+                raise kube.UpstreamCommandError(
+                    f"Failed to seed REQUIRE_HUMAN_APPROVAL: {seed_resp['error']}"
+                )
+            reply = str(seed_resp.get("reply") or "")
         restored_state = kube.http_json(
             f"{kube.GATEWAY_URL}/actors/gemini-agent/state", timeout=15.0
         )
@@ -151,6 +166,7 @@ def api_seed_clean_buddy() -> dict[str, Any]:
 
     brain = probes.inspect_buddy_brain(pre_state=restored_state)
     if brain["verdict"] != "CLEAN":
+        probes.revert_actor_best_effort("gemini-agent")
         raise kube.UpstreamCommandError(
             "Refusing to checkpoint gemini-agent: expected CLEAN "
             f"REQUIRE_HUMAN_APPROVAL verdict, got {brain['verdict']} "
@@ -363,7 +379,7 @@ def api_round3_revert_and_trace() -> dict[str, Any]:
                 f"observed: {restored_state}"
             )
     except Exception:
-        probes.suspend_actor_best_effort("gemini-agent")
+        probes.revert_actor_best_effort("gemini-agent")
         raise
     kube.suspend_actor_checked("gemini-agent", timeout=20)
 

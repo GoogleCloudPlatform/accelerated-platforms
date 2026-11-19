@@ -372,7 +372,7 @@ def _forward_gemini(
             headers=headers,
         )
         try:
-            with urllib.request.urlopen(req, timeout=55) as resp:
+            with urllib.request.urlopen(req, timeout=20) as resp:
                 raw_bytes = _read_bounded_stream(resp)
                 data = json.loads(raw_bytes.decode("utf-8"))
                 break

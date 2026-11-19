@@ -461,6 +461,79 @@ class PromqlScopeTest(unittest.TestCase):
         ):
             acts.api_custom_python({"probe_id": 0})
 
+    def test_act2_poison_guard_tag_reset_and_post_no_replay(self) -> None:
+        running_actors = ([{"name": "gemini-agent", "state": "RUNNING"}], "")
+        poisoned_state = {
+            "approvalPolicy": "AUTO_APPROVE_ALL",
+            "diskPolicy": "AUTO_APPROVE_ALL",
+            "bootID": "deadbeef",
+        }
+        clean_state = {
+            "approvalPolicy": "REQUIRE_HUMAN_APPROVAL",
+            "diskPolicy": "REQUIRE_HUMAN_APPROVAL",
+            "memCount": 1,
+            "diskCount": 1,
+            "bootID": "cafebabe",
+        }
+        with (
+            mock.patch.object(kube, "ensure_port_forwards"),
+            mock.patch.object(kube, "get_actors", return_value=running_actors),
+            mock.patch.object(kube, "http_json", return_value=poisoned_state),
+            mock.patch.object(kube, "suspend_actor_checked") as mock_suspend,
+            self.assertRaises(kube.UpstreamCommandError),
+        ):
+            acts.api_prologue_race()
+        mock_suspend.assert_not_called()
+
+        with (
+            mock.patch.object(kube, "ensure_port_forwards"),
+            mock.patch.object(kube, "get_actors", return_value=running_actors),
+            mock.patch.object(
+                kube, "run_cmd", return_value=("Trace ID: " + "b" * 32, "", 0)
+            ),
+            mock.patch.object(kube, "http_json", return_value=poisoned_state),
+            mock.patch.object(probes, "revert_actor_best_effort") as mock_rev,
+            mock.patch.object(probes, "suspend_actor_best_effort") as mock_susp,
+            self.assertRaises(kube.UpstreamCommandError),
+        ):
+            recovery.api_round3_revert_and_trace()
+        mock_rev.assert_called_once_with("gemini-agent")
+        mock_susp.assert_not_called()
+
+        suspended_actors = ([{"name": "gemini-agent", "state": "SUSPENDED"}], "")
+        states = iter([poisoned_state, clean_state])
+        with (
+            mock.patch.object(kube, "ensure_port_forwards"),
+            mock.patch.object(kube, "get_actors", return_value=suspended_actors),
+            mock.patch.object(kube, "run_cmd", return_value=("Ready", "", 0)),
+            mock.patch.object(
+                probes,
+                "recreate_actor_from_tag",
+                return_value=("create --tag clean-checkpoint-tag", "recreated"),
+            ) as mock_recreate,
+            mock.patch.object(
+                kube, "http_json", side_effect=lambda *_a, **_k: next(states)
+            ),
+            mock.patch.object(kube, "suspend_actor_checked", return_value="ok"),
+        ):
+            healed = recovery.api_seed_clean_buddy()
+        mock_recreate.assert_called_once_with("gemini-agent")
+        self.assertEqual(healed["brain"]["verdict"], "CLEAN")
+
+        # POST requests must not replay after a read TimeoutError
+        gw_url = f"http://127.0.0.1:{kube.GATEWAY_PORT}/chat/gemini-agent"
+        with (
+            mock.patch.object(kube, "ensure_port_forwards") as mock_pf,
+            mock.patch.object(kube, "_get_gateway_admin_token", return_value="tok"),
+            mock.patch.object(
+                kube._HTTP_OPENER, "open", side_effect=TimeoutError("read timed out")
+            ) as mock_open,
+        ):
+            err_doc = kube.http_json(gw_url, method="POST", body={"message": "hi"})
+        self.assertIn("TimeoutError", err_doc["error"])
+        self.assertEqual(mock_open.call_count, 1)
+        mock_pf.assert_called_once_with()
+
 
 if __name__ == "__main__":
     unittest.main()

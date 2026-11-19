@@ -319,14 +319,8 @@ def _pf_targets() -> dict[int, tuple[str, str, str, str, str, str]]:
         "/identity",
         "agent-substrate-gateway",
     )
-    pr = (
-        "prometheus",
-        NAMESPACE,
-        "deploy/prometheus-ui",
-        f"{PROM_PORT}:9090",
-        "/-/ready",
-        "",
-    )
+    pr_map = f"{PROM_PORT}:9090"
+    pr = ("prometheus", NAMESPACE, "deploy/prometheus-ui", pr_map, "/-/ready", "")
     return {GATEWAY_PORT: gw, PROM_PORT: pr}
 
 
@@ -481,8 +475,13 @@ def http_json(
                     continue
             return {"error": f"HTTP {exc.code}: {err_body}", "status": exc.code}
         except net_errs as exc:
+            reason = getattr(exc, "reason", exc)
+            can_retry = method.upper() in ("GET", "HEAD") or isinstance(
+                reason, ConnectionRefusedError
+            )
             if (
                 attempt == 0
+                and can_retry
                 and parsed.hostname in _LOOPBACK_HOSTS
                 and parsed.port in _pf_targets()
             ):

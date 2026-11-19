@@ -110,6 +110,7 @@ class MissionControlRegressionTest(unittest.TestCase):
         with (
             mock.patch.object(kube, "ensure_port_forwards"),
             mock.patch.object(kube, "get_actors", return_value=actors),
+            mock.patch.object(kube, "run_cmd", return_value=("", "not found", 1)),
             mock.patch.object(kube, "http_json", return_value=poisoned),
             mock.patch.object(kube, "suspend_actor_checked") as mock_suspend,
         ):

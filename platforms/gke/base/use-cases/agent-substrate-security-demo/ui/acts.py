@@ -17,7 +17,6 @@
 import base64
 import json
 import re
-import tempfile
 import time
 from typing import Any
 from urllib.parse import urlencode
@@ -31,6 +30,15 @@ def api_prologue_race() -> dict[str, Any]:
     """Run a live suspend -> resume cycle on gemini-agent and report timings."""
     t0 = time.monotonic()
     kube.ensure_port_forwards()
+    actors, _ = kube.get_actors()
+    if any(a["name"] == "gemini-agent" and a["state"] == "RUNNING" for a in actors):
+        pre_brain = probes.inspect_buddy_brain()
+        if pre_brain["verdict"] != "CLEAN":
+            raise kube.UpstreamCommandError(
+                "Refusing to checkpoint gemini-agent in Act 2: uncommitted wake "
+                f"session is {pre_brain['verdict']} ({pre_brain['approval_policy']}). "
+                "Run Act 4 Revert or Reset before suspending."
+            )
     clean_s_out = kube.suspend_actor_checked("gemini-agent", timeout=20)
 
     t_resume0 = time.monotonic()
@@ -61,8 +69,15 @@ def api_prologue_race() -> dict[str, Any]:
             raise kube.UpstreamCommandError(
                 f"Failed to read gemini-agent state: {state_resp['error']}"
             )
+        woken_brain = probes.inspect_buddy_brain(pre_state=state_resp)
+        if woken_brain["verdict"] != "CLEAN":
+            raise kube.UpstreamCommandError(
+                "Refusing to checkpoint gemini-agent: woken snapshot verdict is "
+                f"{woken_brain['verdict']}; click Reset to restore from "
+                "clean-checkpoint-tag."
+            )
     except Exception:
-        probes.suspend_actor_best_effort("gemini-agent")
+        probes.revert_actor_best_effort("gemini-agent")
         raise
 
     kube.suspend_actor_checked("gemini-agent", timeout=20)
@@ -171,43 +186,6 @@ def api_custom_python(body: dict[str, Any]) -> dict[str, Any]:
     return terminal.api_custom_python(body)
 
 
-def _apply_forensic_egress_policy() -> None:
-    """Attach egress-gateway policy to gemini-agent-forensic and fail fast."""
-    egress_gw = kube.STATE_DIR / "egress-gateway.yaml"
-    args = [
-        "kubectl",
-        "ate",
-        "create",
-        "egress-policy",
-        "gemini-agent-forensic",
-        "-a",
-        kube.ATESPACE,
-        "-f",
-    ]
-    if egress_gw.exists():
-        p_out, p_err, p_rc = kube.run_cmd([*args, str(egress_gw)], timeout=15)
-    else:
-        tmpl = kube.MANIFESTS_DIR / "egress-gateway.yaml.tmpl"
-        raw_tmpl = tmpl.read_text(encoding="utf-8")
-        if "${NAMESPACE}" not in raw_tmpl:
-            raise kube.UpstreamCommandError(
-                f"Expected ${{NAMESPACE}} placeholder in {tmpl}"
-            )
-        rendered = raw_tmpl.replace("${NAMESPACE}", kube.NAMESPACE)
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".yaml", encoding="utf-8", delete=True
-        ) as tmp:
-            tmp.write(rendered)
-            tmp.flush()
-            p_out, p_err, p_rc = kube.run_cmd([*args, tmp.name], timeout=15)
-    if p_rc != 0:
-        detail = kube.strip_ate_warnings(f"{p_out}\n{p_err}")
-        raise kube.UpstreamCommandError(
-            "Failed to create egress-policy on gemini-agent-forensic "
-            f"(exit {p_rc}): {detail}"
-        )
-
-
 def _is_cross_cpu_clone() -> bool:
     """Compare `clean-checkpoint-tag` cpu_features vs forensic actor snapshot."""
     forensic_snaps = probes.snapshot_cpu_features("gemini-agent-forensic")
@@ -230,50 +208,7 @@ def api_round3_forensic_clone(
         a["name"] == "gemini-agent" and a["state"] == "RUNNING" for a in actors_before
     )
 
-    del_cmd = ["kubectl", "ate", "delete", "actor", "gemini-agent-forensic"]
-    d_out, d_err, d_rc = kube.run_cmd([*del_cmd, "-a", kube.ATESPACE], timeout=15)
-    d_combined = kube.strip_ate_warnings(f"{d_out}\n{d_err}")
-    if d_rc != 0 and not kube.is_not_found_error(d_combined):
-        raise kube.UpstreamCommandError(
-            f"Failed to delete gemini-agent-forensic (exit {d_rc}): {d_combined}"
-        )
-
-    deleted = False
-    get_cmd = ["kubectl", "ate", "get", "actor", "gemini-agent-forensic"]
-    for _ in range(15):
-        g_out, g_err, check_rc = kube.run_cmd(
-            [*get_cmd, "-a", kube.ATESPACE], timeout=5
-        )
-        if check_rc != 0 and kube.is_not_found_error(f"{g_out}\n{g_err}"):
-            deleted = True
-            break
-        time.sleep(0.5)
-    if not deleted:
-        raise kube.UpstreamCommandError(
-            "Timed out waiting for gemini-agent-forensic deletion to finalize."
-        )
-
-    create_args = [
-        "kubectl",
-        "ate",
-        "create",
-        "actor",
-        "gemini-agent-forensic",
-        "--template=gemini-agent-v1",
-        "--tag",
-        "clean-checkpoint-tag",
-        "-a",
-        kube.ATESPACE,
-    ]
-    c_out, c_err, c_rc = kube.run_cmd(create_args, timeout=15)
-    clone_cmd = " ".join(create_args)
-    clone_out = kube.strip_ate_warnings(f"{c_out}\n{c_err}")
-    if c_rc != 0:
-        raise kube.UpstreamCommandError(
-            f"Failed to create gemini-agent-forensic: {clone_out}"
-        )
-
-    _apply_forensic_egress_policy()
+    clone_cmd, clone_out = probes.recreate_actor_from_tag("gemini-agent-forensic")
 
     forensic_state: dict[str, Any] = {}
     try:

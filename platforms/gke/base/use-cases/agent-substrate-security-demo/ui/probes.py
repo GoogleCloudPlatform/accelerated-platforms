@@ -19,6 +19,8 @@ import json
 import logging
 import re
 import subprocess
+import tempfile
+import time
 from typing import Any
 
 import kube
@@ -366,3 +368,101 @@ def suspend_actor_best_effort(actor_name: str, timeout: int = 15) -> None:
         logging.getLogger(__name__).debug(
             "Best-effort suspend failed for %s: %s", actor_name, exc
         )
+
+
+def revert_actor_best_effort(actor_name: str, timeout: int = 15) -> None:
+    """Discard a dirty wake session on error paths without checkpointing it."""
+    try:
+        kube.run_cmd(
+            ["kubectl", "ate", "revert", "actor", actor_name, "-a", kube.ATESPACE],
+            timeout=timeout,
+        )
+    except (OSError, subprocess.SubprocessError, kube.UpstreamCommandError) as exc:
+        logging.getLogger(__name__).debug(
+            "Best-effort revert failed for %s: %s", actor_name, exc
+        )
+
+
+def apply_egress_gateway_policy(actor_name: str) -> None:
+    """Attach `egress-gateway` policy to `actor_name` and fail fast on error."""
+    egress_gw = kube.STATE_DIR / "egress-gateway.yaml"
+    args = [
+        "kubectl",
+        "ate",
+        "create",
+        "egress-policy",
+        actor_name,
+        "-a",
+        kube.ATESPACE,
+        "-f",
+    ]
+    if egress_gw.exists():
+        p_out, p_err, p_rc = kube.run_cmd([*args, str(egress_gw)], timeout=15)
+    else:
+        tmpl = kube.MANIFESTS_DIR / "egress-gateway.yaml.tmpl"
+        raw_tmpl = tmpl.read_text(encoding="utf-8")
+        if "${NAMESPACE}" not in raw_tmpl:
+            raise kube.UpstreamCommandError(
+                f"Expected ${{NAMESPACE}} placeholder in {tmpl}"
+            )
+        rendered = raw_tmpl.replace("${NAMESPACE}", kube.NAMESPACE)
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".yaml", encoding="utf-8", delete=True
+        ) as tmp:
+            tmp.write(rendered)
+            tmp.flush()
+            p_out, p_err, p_rc = kube.run_cmd([*args, tmp.name], timeout=15)
+    if p_rc != 0:
+        detail = kube.strip_ate_warnings(f"{p_out}\n{p_err}")
+        raise kube.UpstreamCommandError(
+            f"Failed to create egress-policy on {actor_name} (exit {p_rc}): {detail}"
+        )
+
+
+def recreate_actor_from_tag(
+    actor_name: str,
+    template_name: str = "gemini-agent-v1",
+    tag_name: str = "clean-checkpoint-tag",
+) -> tuple[str, str]:
+    """Delete `actor_name`, recreate it from immutable `tag_name`, & attach policy."""
+    del_cmd = ["kubectl", "ate", "delete", "actor", actor_name, "-a", kube.ATESPACE]
+    d_out, d_err, d_rc = kube.run_cmd(del_cmd, timeout=15)
+    d_combined = kube.strip_ate_warnings(f"{d_out}\n{d_err}")
+    if d_rc != 0 and not kube.is_not_found_error(d_combined):
+        raise kube.UpstreamCommandError(
+            f"Failed to delete {actor_name} (exit {d_rc}): {d_combined}"
+        )
+
+    deleted = False
+    get_cmd = ["kubectl", "ate", "get", "actor", actor_name, "-a", kube.ATESPACE]
+    for _ in range(15):
+        g_out, g_err, check_rc = kube.run_cmd(get_cmd, timeout=5)
+        if check_rc != 0 and kube.is_not_found_error(f"{g_out}\n{g_err}"):
+            deleted = True
+            break
+        time.sleep(0.5)
+    if not deleted:
+        raise kube.UpstreamCommandError(
+            f"Timed out waiting for {actor_name} deletion to finalize."
+        )
+
+    create_args = [
+        "kubectl",
+        "ate",
+        "create",
+        "actor",
+        actor_name,
+        f"--template={template_name}",
+        "--tag",
+        tag_name,
+        "-a",
+        kube.ATESPACE,
+    ]
+    c_out, c_err, c_rc = kube.run_cmd(create_args, timeout=15)
+    clone_out = kube.strip_ate_warnings(f"{c_out}\n{c_err}")
+    if c_rc != 0:
+        raise kube.UpstreamCommandError(
+            f"Failed to create {actor_name} from {tag_name}: {clone_out}"
+        )
+    apply_egress_gateway_policy(actor_name)
+    return " ".join(create_args), clone_out

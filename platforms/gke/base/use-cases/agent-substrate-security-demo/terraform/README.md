@@ -28,12 +28,12 @@ cluster (`Option A`).
 
 ### Choosing Between Option A and Option B
 
-| Dimension                           | Option A: Standalone Zonal Cluster (`scripts/`)                                                                        | Option B: Regional GKE Base Platform (`terraform/`)                                                                                                                                                                                                                                                                 |
-| :---------------------------------- | :--------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **VM Footprint & Quota**            | **2 zonal VMs** (`default-pool` in 1 zone; minimal quota for evaluation, development, or capacity-constrained regions) | **6–7 regional VMs** (`3` `system` + `2` `agent-substrate-*` + `1–2` GKE NAP nodes across zones)                                                                                                                                                                                                                    |
+| Dimension                           | Option A: Standalone Zonal Cluster (`scripts/`)                                                                                                                             | Option B: Regional GKE Base Platform (`terraform/`)                                                                                                                                                                                                                                                                 |
+| :---------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **VM Footprint & Quota**            | **2 zonal VMs** (`default-pool` in 1 zone; minimal quota for evaluation, development, or capacity-constrained regions)                                                      | **6–7 regional VMs** (`3` `system` + `2` `agent-substrate-*` + `1–2` GKE NAP nodes across zones)                                                                                                                                                                                                                    |
 | **VM-Level Blast-Radius Isolation** | Co-locates `ate-system` and `ateworker-gvisor` on the 2 untainted nodes (sandboxes isolated via `gVisor` + `atenet-egress`; gateways and `partner-api` via `NetworkPolicy`) | **Dedicated VM separation**: `ate.dev/sandboxClass=gvisor:NoSchedule` + `nodeAffinity` pin `ateworker-gvisor` (and per-node `atelet`) to `agent-substrate-*` VMs while `ate-controller`, `atenet-router`, `k8s-credential-provider`, `postgres`, `gateway`, and `partner-api` run on separate untainted GKE NAP VMs |
-| **Provisioning Time**               | **~6–8 min** (`gcloud` + `stage.sh`)                                                                                   | **~18–22 min** (Core Terraservices + use-case Terraservice + `stage.sh`)                                                                                                                                                                                                                                            |
-| **Capacity / Stockout Fallback**    | `export CLUSTER_LOCATION=<zone> MACHINE_TYPE=n2-standard-4` (or `c3-standard-4`; fast 15s MIG stockout detection)      | `TF_VAR_cluster_system_node_pool_machine_type="n2-standard-4"`, `TF_VAR_agent_substrate_node_machine_type="n2-standard-4"` (prefer homogeneous `n2`/`c3` over heterogeneous Intel/AMD `e2` for cross-node RAM snapshot restore), and optional `TF_VAR_agent_substrate_node_locations`                               |
+| **Provisioning Time**               | **~6–8 min** (`gcloud` + `stage.sh`)                                                                                                                                        | **~18–22 min** (Core Terraservices + use-case Terraservice + `stage.sh`)                                                                                                                                                                                                                                            |
+| **Capacity / Stockout Fallback**    | `export CLUSTER_LOCATION=<zone> MACHINE_TYPE=n2-standard-4` (or `c3-standard-4`; fast 15s MIG stockout detection)                                                           | `TF_VAR_cluster_system_node_pool_machine_type="n2-standard-4"`, `TF_VAR_agent_substrate_node_machine_type="n2-standard-4"` (prefer homogeneous `n2`/`c3` over heterogeneous Intel/AMD `e2` for cross-node RAM snapshot restore), and optional `TF_VAR_agent_substrate_node_locations`                               |
 
 ## Option A: Standalone Private-Node GKE 1.37+ Cluster (~6–8 min) + 4-Act Verification
 
@@ -183,6 +183,13 @@ cluster (`Option A`).
    ```shell
    ./platforms/gke/base/use-cases/agent-substrate-security-demo/terraform/teardown-standard.sh
    ```
+
+   Passing `ACP_TEARDOWN_CORE_PLATFORM=false` destroys the use-case Terraservice
+   (worker node pool, snapshot bucket, Artifact Registry repository, and
+   Workload Identity bindings), custom dashboards, and `ate-system` Postgres
+   PVCs while keeping the Core Platform cluster, VPC, and shared Terraform state
+   bucket intact; Kubernetes objects applied by `stage.sh` remain on the kept
+   cluster until deleted or re-staged.
 
 ## Customizing Python Agents (`app/`) & Digest-Pinned Container Builds
 

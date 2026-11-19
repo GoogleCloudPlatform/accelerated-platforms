@@ -49,48 +49,17 @@ cleanup_stage_tmp() {
 trap cleanup_stage_tmp EXIT
 
 # shellcheck disable=SC1091
+source "${SCRIPT_DIR}/common.sh"
+# shellcheck disable=SC1091
 source "${SCRIPT_DIR}/port-forward.sh"
 
-KUBE_CTX="$(kubectl config current-context 2>/dev/null || true)"
-CTX_PROJECT=""
-CTX_LOCATION=""
-CTX_CLUSTER=""
-if [[ "${KUBE_CTX}" =~ ^gke_([^_]+)_([^_]+)_(.+)$ ]]; then
-  CTX_PROJECT="${BASH_REMATCH[1]}"
-  CTX_LOCATION="${BASH_REMATCH[2]}"
-  CTX_CLUSTER="${BASH_REMATCH[3]}"
-fi
-
-declare -A STAGED=()
-if [[ -f "${STATE_DIR}/staged.env" ]]; then
-  while IFS='=' read -r k v; do
-    [[ -n "${k}" && "${k}" != \#* ]] && STAGED["${k}"]="${v}"
-  done < "${STATE_DIR}/staged.env"
-fi
-TARGET_CLUSTER_HINT="${CLUSTER_NAME:-${CTX_CLUSTER:-${STAGED[CLUSTER_NAME]:-}}}"
-if [[ -n "${STAGED[CLUSTER_NAME]:-}" && "${TARGET_CLUSTER_HINT}" != "${STAGED[CLUSTER_NAME]}" ]]; then
-  STAGED=()
-fi
-
-DEFAULT_PROJECT="$(gcloud config get-value project 2>/dev/null || true)"
-[[ "${DEFAULT_PROJECT}" == "(unset)" ]] && DEFAULT_PROJECT=""
+resolve_demo_target "${STATE_DIR}"
 
 export APP_IMAGE="${APP_IMAGE:-}"
 export AR_REPO="${AR_REPO:-${STAGED[AR_REPO]:-agent-substrate}}"
 export REFRESH_ACTORS="${REFRESH_ACTORS:-false}"
 export PROVISION_GCP_INFRA="${PROVISION_GCP_INFRA:-${STAGED[PROVISION_GCP_INFRA]:-true}}"
 export MIN_GKE_VERSION="${MIN_GKE_VERSION:-1.37}"
-export PROJECT_ID="${PROJECT_ID:-${CTX_PROJECT:-${STAGED[PROJECT_ID]:-${DEFAULT_PROJECT}}}}"
-export CLUSTER_NAME="${CLUSTER_NAME:-${CTX_CLUSTER:-${STAGED[CLUSTER_NAME]:-agent-substrate-live}}}"
-export CLUSTER_LOCATION="${CLUSTER_LOCATION:-${CTX_LOCATION:-${STAGED[CLUSTER_LOCATION]:-us-central1-b}}}"
-if [[ -z "${REGION:-}" ]]; then
-  if [[ "${CLUSTER_LOCATION}" =~ -[a-z]$ ]]; then
-    REGION="${CLUSTER_LOCATION%-*}"
-  else
-    REGION="${CLUSTER_LOCATION}"
-  fi
-fi
-export REGION
 export NAMESPACE="${NAMESPACE:-${STAGED[NAMESPACE]:-agent-sandbox}}"
 export SECRETS_NAMESPACE="${SECRETS_NAMESPACE:-${STAGED[SECRETS_NAMESPACE]:-agent-secrets}}"
 export ATESPACE="${ATESPACE:-${STAGED[ATESPACE]:-security-demo}}"
@@ -134,12 +103,10 @@ render_manifest() {
 }
 
 ignore_not_found() {
-  local err_out lower rc=0
+  local err_out rc=0
   err_out="$("$@" 2>&1)" || rc=$?
   [[ "${rc}" -eq 0 ]] && return 0
-  lower="$(printf '%s' "${err_out}" | tr '[:upper:]' '[:lower:]')"
-  if [[ "${lower}" == *"not found"* || "${lower}" == *"not_found"* || "${lower}" == *"404"* \
-     || "${lower}" == *"does not exist"* || "${lower}" == *"has no egress policy"* ]]; then
+  if is_not_found_output "${err_out}"; then
     return 0
   fi
   printf '%s\n' "${err_out}" >&2
@@ -367,13 +334,26 @@ ok "kubectl-ate (${SUBSTRATE_REF} @ ${SUBSTRATE_COMMIT:0:8}) ready"
 INGRESS_SPIFFE="spiffe://cluster.local/ns/${NAMESPACE}/sa/gateway"
 INSTALLED_APISERVER_IMG="$(kubectl -n ate-system get deploy ate-api-server -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null || true)"
 INSTALLED_APISERVER_ARGS="$(kubectl -n ate-system get deploy ate-api-server -o jsonpath='{.spec.template.spec.containers[0].args[*]}' 2>/dev/null || true)"
-INSTALLED_ROUTER_ARGS="$(kubectl -n ate-system get deploy atenet-router -o jsonpath='{.spec.template.spec.containers[0].args[*]}' 2>/dev/null || true)"
+
+router_mtls_is_clean() {
+  local router_json svc_json
+  router_json="$(kubectl -n ate-system get deploy atenet-router -o json 2>/dev/null)" || return 1
+  jq -e --arg want "--ingress-allowed-spiffe-ids=${INGRESS_SPIFFE}" '
+    ([.spec.template.spec.containers[].args[]? | select(startswith("--ingress-allowed-spiffe-ids="))] == [$want])
+  ' <<<"${router_json}" >/dev/null || return 1
+  svc_json="$(kubectl -n ate-system get svc atenet-router -o json 2>/dev/null)" || return 1
+  jq -e '([.spec.ports[]? | select(.port == 80 or .name == "http")] | length) == 0' <<<"${svc_json}" >/dev/null || return 1
+  if kubectl -n ate-system get cm -o yaml 2>/dev/null | grep -Fq "ingress_http_bridge"; then
+    return 1
+  fi
+  return 0
+}
 
 if [[ -z "${INSTALLED_APISERVER_IMG}" \
    || ! "${INSTALLED_APISERVER_IMG}" =~ :${SUBSTRATE_IMAGE_TAG}(@|$) \
    || "${INSTALLED_APISERVER_ARGS}" != *"gs://${BUCKET_NAME}/"* \
-   || "${INSTALLED_APISERVER_ARGS}" != *"${SNAPSHOT_TRANSFER_GSA_NAME}"* \
-   || "${INSTALLED_ROUTER_ARGS}" != *"--ingress-allowed-spiffe-ids=${INGRESS_SPIFFE}"* ]] \
+   || "${INSTALLED_APISERVER_ARGS}" != *"${SNAPSHOT_TRANSFER_GSA_NAME}"* ]] \
+   || ! router_mtls_is_clean \
    || ! kubectl -n ate-system get ds atelet >/dev/null 2>&1; then
   CURRENT_CTX="$(kubectl config current-context)"
   PG_SC_ARGS=()
@@ -400,6 +380,10 @@ export WORKER_IMAGE="${SUBSTRATE_IMAGE_REPO}/ateworker-gvisor:${SUBSTRATE_IMAGE_
 
 kubectl -n ate-system wait --for=condition=Available deploy --all --timeout=10m >/dev/null
 kubectl -n ate-system rollout status ds/atelet --timeout=10m >/dev/null
+router_mtls_is_clean || {
+  echo "Error: atenet-router failed mTLS allowlist or plaintext-bridge verification after rollout." >&2
+  exit 1
+}
 ok "Agent Substrate (${SUBSTRATE_REF}) control plane ready (mTLS on atenet-router:443)"
 
 resolve_image_digest() {
@@ -438,8 +422,11 @@ export AGENT_IMAGE="${APP_IMAGE}"
 export GATEWAY_CODE_SHA="$(printf '%s' "${APP_IMAGE}" | sha256sum | awk '{print $1}')"
 
 step "2/6: Ensuring WorkerPool (2 gVisor worker pods), atespace (${ATESPACE}), and mTLS Gateway"
-if [[ "${PROVISION_GCP_INFRA}" == "true" ]] && [[ "$(kubectl get nodes -l workload=agent-substrate -o name | wc -l)" -eq 0 ]]; then
-  kubectl label nodes --all workload=agent-substrate --overwrite >/dev/null
+if [[ "${PROVISION_GCP_INFRA}" == "true" ]]; then
+  LABELED_NODES="$(kubectl get nodes -l workload=agent-substrate -o name)"
+  if [[ -z "${LABELED_NODES}" ]]; then
+    kubectl label nodes --all workload=agent-substrate --overwrite >/dev/null
+  fi
 fi
 render_manifest '${NAMESPACE} ${WORKER_IMAGE}' "${MANIFESTS_DIR}/workerpool.yaml.tmpl" | kubectl apply -f -
 _two_workers() {

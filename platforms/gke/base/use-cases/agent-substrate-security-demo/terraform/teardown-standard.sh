@@ -87,7 +87,13 @@ if gcloud container clusters describe "${cluster_name}" --region "${cluster_regi
   fi
   if [ "${KC_READY}" = "true" ]; then
     KUBECONFIG="${TMP_KC}" kubectl -n ate-system delete statefulset postgres --ignore-not-found >/dev/null 2>&1 || true
-    KUBECONFIG="${TMP_KC}" kubectl -n ate-system delete pvc --all --ignore-not-found --timeout=60s >/dev/null 2>&1 || true
+    if ! KUBECONFIG="${TMP_KC}" kubectl -n ate-system delete pvc --all --ignore-not-found --timeout=60s; then
+      if [ "${FORCE_TERRAFORM_DESTROY:-false}" != "true" ]; then
+        echo "Error: failed to release ate-system PVCs on '${cluster_name}'; aborting before terraform destroy so persistent disks are not orphaned (set FORCE_TERRAFORM_DESTROY=true to override)." >&2
+        exit 1
+      fi
+      echo "Warning: continuing despite ate-system PVC release failure (FORCE_TERRAFORM_DESTROY=true)." >&2
+    fi
   fi
   rm -f "${TMP_KC}"
   TMP_KC=""

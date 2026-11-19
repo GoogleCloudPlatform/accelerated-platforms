@@ -175,6 +175,7 @@ if ! gcloud container clusters describe "${CLUSTER_NAME}" --location "${CLUSTER_
     --service-account "${NODE_SA_EMAIL}" \
     --shielded-secure-boot \
     --shielded-integrity-monitoring \
+    --labels "created-by=agent-substrate-demo,managed-by=agent-substrate-demo" \
     --node-labels "workload=agent-substrate" \
     --workload-pool "${PROJECT_ID}.svc.id.goog" \
     --enable-managed-prometheus \
@@ -249,4 +250,19 @@ if [[ "${UPDATE_KUBECONFIG}" == "true" ]]; then
 else
   echo "==> 5/5: Skipping kubeconfig context switch (UPDATE_KUBECONFIG=${UPDATE_KUBECONFIG})."
   echo "  Fetch credentials manually with: gcloud container clusters get-credentials '${CLUSTER_NAME}' --location '${CLUSTER_LOCATION}' --project '${PROJECT_ID}' --dns-endpoint"
+fi
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+STATE_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)/.state"
+mkdir -m 0700 -p "${STATE_DIR}"
+chmod 0700 "${STATE_DIR}"
+if [[ ! -f "${STATE_DIR}/staged.env" ]]; then
+  cat > "${STATE_DIR}/staged.env" <<EOF
+PROJECT_ID=${PROJECT_ID}
+CLUSTER_NAME=${CLUSTER_NAME}
+CLUSTER_LOCATION=${CLUSTER_LOCATION}
+REGION=${REGION}
+PROVISION_GCP_INFRA=true
+EOF
+  chmod 0600 "${STATE_DIR}/staged.env"
 fi

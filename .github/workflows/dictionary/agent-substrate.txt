@@ -62,9 +62,12 @@ matcher
 matchers
 maxlength
 millicores
+minified
+minify
 mitm
 mkstemp
 mtime
+mtls
 netloc
 newurl
 nist
@@ -77,6 +80,7 @@ openclaw
 oversub
 owasp
 pidfile
+plaintext
 podcert
 podidentity
 promql
@@ -109,6 +113,7 @@ toctou
 traceback
 tracebacks
 trunc
+unowned
 unschedulable
 unterminated
 upsert

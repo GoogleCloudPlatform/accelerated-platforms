@@ -127,10 +127,13 @@ class KubeAndProbesCoverageTest(unittest.TestCase):
                 {"CLUSTER_NAME": "", "PROJECT_ID": "", "GATEWAY_ADMIN_TOKEN": ""},
                 clear=False,
             ),
+            mock.patch.object(kube, "_load_staged_defaults", return_value={}),
             mock.patch.object(kube, "run_cmd", side_effect=_fake_kubectl),
         ):
             self.assertEqual(kube.get_cluster_name(), "my-cluster")
             self.assertEqual(kube.detect_project_id(), "my-proj")
+            self.assertFalse(kube.is_not_found_error("actor-404-prod timed out"))
+            self.assertTrue(kube.is_not_found_error("HTTP 404: resource missing"))
             meta = kube.detect_cluster_meta()
             self.assertEqual(meta["gke_version"], "1.37.2-gke.100")
             self.assertEqual(meta["substrate_version"], "v1.0.0")
@@ -151,6 +154,8 @@ class KubeAndProbesCoverageTest(unittest.TestCase):
             with tempfile.TemporaryDirectory() as tmp_state:
                 tokens = iter(["stale-tok", "refreshed-tok", "refreshed-tok"])
                 gw_url = f"http://127.0.0.1:{port}"
+                owned_pf = mock.MagicMock(spec=subprocess.Popen)
+                owned_pf.poll.return_value = None
                 with (
                     mock.patch.object(kube, "STATE_DIR", Path(tmp_state)),
                     mock.patch.object(kube, "GATEWAY_URL", gw_url),
@@ -163,11 +168,20 @@ class KubeAndProbesCoverageTest(unittest.TestCase):
                         side_effect=lambda **_kw: next(tokens),
                     ),
                 ):
-                    kube.ensure_port_forwards()
-                    res = kube.http_json(f"{gw_url}/auth-check")
-                    self.assertTrue(res["ok"])
-                    plain = kube.http_json(f"{gw_url}/plain")
-                    self.assertEqual(plain["raw"], "plain-text-metrics")
+                    # Unowned listener answering 200 on /identity MUST be rejected
+                    kube._PF_PROCESSES.pop(port, None)
+                    with self.assertRaises(kube.UpstreamCommandError):
+                        kube.ensure_port_forwards()
+
+                    kube._PF_PROCESSES[port] = owned_pf
+                    try:
+                        kube.ensure_port_forwards()
+                        res = kube.http_json(f"{gw_url}/auth-check")
+                        self.assertTrue(res["ok"])
+                        plain = kube.http_json(f"{gw_url}/plain")
+                        self.assertEqual(plain["raw"], "plain-text-metrics")
+                    finally:
+                        kube._PF_PROCESSES.pop(port, None)
 
                 fake_proc = mock.MagicMock(spec=subprocess.Popen)
                 fake_proc.poll.return_value = None

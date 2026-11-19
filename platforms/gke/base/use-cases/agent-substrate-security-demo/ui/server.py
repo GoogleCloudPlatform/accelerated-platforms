@@ -18,6 +18,7 @@ import hashlib
 import hmac
 import ipaddress
 import json
+import os
 import secrets
 import signal
 import socket
@@ -363,6 +364,42 @@ class MissionControlHandler(BaseHTTPRequestHandler):
         self._dispatch_with_error_guards(handler_fn, serialize_mutation=True)
 
 
+def pin_staged_kubeconfig() -> str:
+    """Write a minified kubeconfig for the staged cluster to prevent drift."""
+    staged = kube._load_staged_defaults(kube.STATE_DIR)
+    env_ctx = os.environ.get("KUBE_CONTEXT", "").strip()
+    env_cluster = os.environ.get("CLUSTER_NAME", "").strip()
+    target_ctx = env_ctx
+    if (
+        not target_ctx
+        and staged.get("PROJECT_ID")
+        and staged.get("CLUSTER_LOCATION")
+        and staged.get("CLUSTER_NAME")
+        and (not env_cluster or env_cluster == staged["CLUSTER_NAME"])
+    ):
+        target_ctx = (
+            f"gke_{staged['PROJECT_ID']}_"
+            f"{staged['CLUSTER_LOCATION']}_{staged['CLUSTER_NAME']}"
+        )
+    if not target_ctx:
+        return ""
+    out, err, rc = kube.run_cmd(
+        ["kubectl", "config", "view", "--raw", "--minify", "--context", target_ctx],
+        timeout=8,
+    )
+    if rc != 0 or not out.strip():
+        raise kube.UpstreamCommandError(
+            f"Context {target_ctx!r} not found in kubeconfig ({err}); run "
+            "gcloud container clusters get-credentials or stage.sh."
+        )
+    kube.STATE_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
+    kc_path = kube.STATE_DIR / "ui.kubeconfig"
+    kc_path.write_text(out + "\n", encoding="utf-8")
+    kc_path.chmod(0o600)
+    kube._PINNED_KUBECONFIG = str(kc_path)
+    return str(kc_path)
+
+
 def run_server() -> None:
     """Validate bind configuration, start port-forwards, and serve HTTP."""
     if (
@@ -381,6 +418,7 @@ def run_server() -> None:
             "Host header anti-rebinding check. Set UI_AUTH_TOKEN=<secret> or "
             "use a suffix such as ALLOWED_HOSTS='*.example.com'."
         )
+    pin_staged_kubeconfig()
     kube.ensure_port_forwards()
     server = ThreadingHTTPServer((kube.BIND_HOST, kube.PORT), MissionControlHandler)
     signal.signal(

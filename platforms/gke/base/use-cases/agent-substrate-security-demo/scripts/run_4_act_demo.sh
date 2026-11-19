@@ -25,22 +25,13 @@ BIN_DIR="${USE_CASE_DIR}/bin"
 mkdir -m 0700 -p "${STATE_DIR}"
 chmod 0700 "${STATE_DIR}"
 
-STAGED_NAMESPACE=""
-STAGED_SECRETS_NAMESPACE=""
-STAGED_ATESPACE=""
-if [[ -f "${STATE_DIR}/staged.env" ]]; then
-  while IFS='=' read -r k v; do
-    case "${k}" in
-      NAMESPACE) STAGED_NAMESPACE="${v}" ;;
-      SECRETS_NAMESPACE) STAGED_SECRETS_NAMESPACE="${v}" ;;
-      ATESPACE) STAGED_ATESPACE="${v}" ;;
-    esac
-  done < "${STATE_DIR}/staged.env"
-fi
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/common.sh"
+load_staged_env "${STATE_DIR}/staged.env"
 
-export NAMESPACE="${NAMESPACE:-${STAGED_NAMESPACE:-agent-sandbox}}"
-export SECRETS_NAMESPACE="${SECRETS_NAMESPACE:-${STAGED_SECRETS_NAMESPACE:-agent-secrets}}"
-export ATESPACE="${ATESPACE:-${STAGED_ATESPACE:-security-demo}}"
+export NAMESPACE="${NAMESPACE:-${STAGED[NAMESPACE]:-agent-sandbox}}"
+export SECRETS_NAMESPACE="${SECRETS_NAMESPACE:-${STAGED[SECRETS_NAMESPACE]:-agent-secrets}}"
+export ATESPACE="${ATESPACE:-${STAGED[ATESPACE]:-security-demo}}"
 export GATEWAY_LOCAL_PORT="${GATEWAY_LOCAL_PORT:-8081}"
 export TEST_B_URL="${TEST_B_URL:-https://example.com/}"
 export TEST_C_URL="${TEST_C_URL:-http://1.1.1.1/}"
@@ -49,13 +40,23 @@ export PATH="${BIN_DIR}:$(go env GOPATH 2>/dev/null)/bin:${HOME:-/tmp}/.local/bi
 AUTH_HEADER_FILE=""
 TEST_B_OUT=""
 TEST_C_OUT=""
+PINNED_KC=""
 cleanup_runner_tmp() {
   local f
-  for f in "${AUTH_HEADER_FILE}" "${TEST_B_OUT}" "${TEST_C_OUT}"; do
+  for f in "${AUTH_HEADER_FILE}" "${TEST_B_OUT}" "${TEST_C_OUT}" "${PINNED_KC}"; do
     [[ -n "${f}" && -f "${f}" ]] && rm -f "${f}"
   done
 }
 trap cleanup_runner_tmp EXIT
+
+if [[ -n "${STAGED[PROJECT_ID]:-}" && -n "${STAGED[CLUSTER_LOCATION]:-}" && -n "${STAGED[CLUSTER_NAME]:-}" \
+   && -z "${CLUSTER_NAME:-}" ]]; then
+  TARGET_CTX="gke_${STAGED[PROJECT_ID]}_${STAGED[CLUSTER_LOCATION]}_${STAGED[CLUSTER_NAME]}"
+  PINNED_KC="$(mktemp "${STATE_DIR}/runner-kc.XXXXXX")"
+  chmod 0600 "${PINNED_KC}"
+  kubectl config view --raw --minify --context "${TARGET_CTX}" > "${PINNED_KC}"
+  export KUBECONFIG="${PINNED_KC}"
+fi
 
 # shellcheck disable=SC1091
 source "${SCRIPT_DIR}/port-forward.sh"

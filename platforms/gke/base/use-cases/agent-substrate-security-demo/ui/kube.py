@@ -26,16 +26,11 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import IO, Any
+from typing import Any
 from urllib.parse import urlencode, urlparse
 
-
-def _default_use_case_dir() -> Path:
-    return Path(__file__).resolve().parent.parent
-
-
 USE_CASE_DIR = Path(
-    os.environ.get("USE_CASE_DIR", str(_default_use_case_dir()))
+    os.environ.get("USE_CASE_DIR", str(Path(__file__).resolve().parent.parent))
 ).resolve()
 STATE_DIR = USE_CASE_DIR / ".state"
 MANIFESTS_DIR = USE_CASE_DIR / "manifests"
@@ -95,21 +90,14 @@ _CACHED_CLUSTER_NAME: str | None = None
 _CACHED_PROJECT_ID: str | None = None
 _CACHED_ADMIN_TOKEN: str | None = None
 _CACHED_CLUSTER_META: dict[str, str] | None = None
+_PINNED_KUBECONFIG: str = ""
 
 
 class _NoRedirectHandler(urllib.request.HTTPRedirectHandler):
     """Never follow 30x redirects so auth headers cannot leak off-origin."""
 
-    def redirect_request(
-        self,
-        req: urllib.request.Request,
-        fp: IO[bytes],
-        code: int,
-        msg: str,
-        headers: Any,
-        newurl: str,
-    ) -> urllib.request.Request | None:
-        del req, fp, code, msg, headers, newurl
+    def redirect_request(self, *args: Any, **kwargs: Any) -> None:
+        del args, kwargs
         return None
 
 
@@ -128,16 +116,19 @@ def escape_promql_label(value: str) -> str:
 def reset_caches() -> None:
     """Clear memoized cluster metadata (used by unit tests)."""
     global _CACHED_CLUSTER_NAME, _CACHED_PROJECT_ID
-    global _CACHED_ADMIN_TOKEN, _CACHED_CLUSTER_META
+    global _CACHED_ADMIN_TOKEN, _CACHED_CLUSTER_META, _PINNED_KUBECONFIG
     with _CACHE_LOCK:
         _CACHED_CLUSTER_NAME = _CACHED_PROJECT_ID = None
         _CACHED_ADMIN_TOKEN = _CACHED_CLUSTER_META = None
+        _PINNED_KUBECONFIG = ""
 
 
 def _env() -> dict[str, str]:
     env = dict(os.environ)
     local_bin = Path.home() / ".local" / "bin"
     env["PATH"] = f"{USE_CASE_DIR / 'bin'}:{local_bin}:{env.get('PATH', '')}"
+    if _PINNED_KUBECONFIG:
+        env["KUBECONFIG"] = _PINNED_KUBECONFIG
     return env
 
 
@@ -169,8 +160,9 @@ def strip_ate_warnings(text: str) -> str:
 def is_not_found_error(text: str) -> bool:
     """Return True if CLI stderr indicates the target resource does not exist."""
     lower = text.lower()
-    tokens = ("not found", "not_found", "notfound", "404", "does not exist")
-    return "has no egress policy" in lower or any(tok in lower for tok in tokens)
+    t1 = ("not found", "not_found", "notfound", "does not exist")
+    t2 = ("has no egress policy", "http 404", "code=404", "code: 404", "error 404")
+    return any(tok in lower for tok in (*t1, *t2))
 
 
 def _gke_ctx_parts() -> list[str]:
@@ -180,7 +172,7 @@ def _gke_ctx_parts() -> list[str]:
 
 
 def get_cluster_name() -> str:
-    """Resolve the active GKE cluster name lazily or fail fast if undetectable."""
+    """Resolve the active GKE cluster name lazily (env -> staged.env -> context)."""
     global _CACHED_CLUSTER_NAME
     env_cluster = os.environ.get("CLUSTER_NAME", "").strip()
     if env_cluster:
@@ -188,24 +180,22 @@ def get_cluster_name() -> str:
     with _CACHE_LOCK:
         if _CACHED_CLUSTER_NAME is not None:
             return _CACHED_CLUSTER_NAME
-    parts = _gke_ctx_parts()
-    resolved = (
-        "_".join(parts[3:])
-        if parts and "_".join(parts[3:])
-        else _load_staged_defaults(STATE_DIR).get("CLUSTER_NAME", "")
-    )
+    resolved = _load_staged_defaults(STATE_DIR).get("CLUSTER_NAME", "")
+    if not resolved:
+        parts = _gke_ctx_parts()
+        resolved = "_".join(parts[3:]) if parts else ""
     if resolved:
         with _CACHE_LOCK:
             _CACHED_CLUSTER_NAME = resolved
         return resolved
     raise UpstreamCommandError(
-        "Unable to determine GKE cluster name from CLUSTER_NAME or kubectl "
-        "current-context; export CLUSTER_NAME=<name>."
+        "Unable to determine GKE cluster name from CLUSTER_NAME, staged.env, or "
+        "kubectl current-context; export CLUSTER_NAME=<name>."
     )
 
 
 def detect_project_id() -> str:
-    """Resolve the active GCP project ID from env, kubeconfig, or gcloud."""
+    """Resolve the active GCP project ID (env -> staged.env -> context -> gcloud)."""
     global _CACHED_PROJECT_ID
     env_proj = (
         os.environ.get("PROJECT_ID", "").strip()
@@ -216,10 +206,10 @@ def detect_project_id() -> str:
     with _CACHE_LOCK:
         if _CACHED_PROJECT_ID is not None:
             return _CACHED_PROJECT_ID
-    parts = _gke_ctx_parts()
-    proj = parts[1] if parts and parts[1] else ""
+    proj = _load_staged_defaults(STATE_DIR).get("PROJECT_ID", "")
     if not proj:
-        proj = _load_staged_defaults(STATE_DIR).get("PROJECT_ID", "")
+        parts = _gke_ctx_parts()
+        proj = parts[1] if parts and parts[1] else ""
     if not proj:
         out, _, rc = run_cmd(["gcloud", "config", "get-value", "project"], timeout=8)
         proj = out.strip() if rc == 0 and out.strip() != "(unset)" else ""
@@ -311,16 +301,10 @@ def _probe_http(port: int, path: str, expected: str) -> bool:
 
 
 def _pf_targets() -> dict[int, tuple[str, str, str, str, str, str]]:
-    gw = (
-        "gateway",
-        NAMESPACE,
-        "deploy/gateway",
-        f"{GATEWAY_PORT}:8081",
-        "/identity",
-        "agent-substrate-gateway",
-    )
-    pr_map = f"{PROM_PORT}:9090"
-    pr = ("prometheus", NAMESPACE, "deploy/prometheus-ui", pr_map, "/-/ready", "")
+    gw_m, pr_m = f"{GATEWAY_PORT}:8081", f"{PROM_PORT}:9090"
+    gw_id = "agent-substrate-gateway"
+    gw = ("gateway", NAMESPACE, "deploy/gateway", gw_m, "/identity", gw_id)
+    pr = ("prometheus", NAMESPACE, "deploy/prometheus-ui", pr_m, "/-/ready", "")
     return {GATEWAY_PORT: gw, PROM_PORT: pr}
 
 
@@ -335,17 +319,26 @@ def _terminate_proc(proc: subprocess.Popen[bytes] | None) -> None:
         proc.wait(timeout=1)
 
 
-def _stop_pidfile(pidfile: Path) -> None:
+def _pidfile_cmdline(pidfile: Path) -> tuple[int, str]:
     if not pidfile.exists():
-        return
+        return 0, ""
     try:
         pid = int(pidfile.read_text(encoding="utf-8").strip())
+        os.kill(pid, 0)
         cmd_p = Path(f"/proc/{pid}/cmdline")
         cmd_s = cmd_p.read_bytes().decode("utf-8", "replace") if cmd_p.exists() else ""
-        if "kubectl" in cmd_s and "port-forward" in cmd_s:
-            os.kill(pid, 15)
+        return pid, cmd_s
     except (ValueError, OSError):
-        pass
+        return 0, ""
+
+
+def _stop_pidfile(pidfile: Path) -> None:
+    pid, cmd_s = _pidfile_cmdline(pidfile)
+    if pid and "kubectl" in cmd_s and "port-forward" in cmd_s:
+        try:
+            os.kill(pid, 15)
+        except OSError:
+            pass
     pidfile.unlink(missing_ok=True)
 
 
@@ -356,7 +349,16 @@ def _start_single_pf(local_port: int, force_restart: bool = False) -> None:
     name, ns, target, mapping, probe_path, expected = targets[local_port]
     STATE_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
     pidfile = STATE_DIR / f"pf-{name}.pid"
-    if not force_restart and _probe_http(local_port, probe_path, expected):
+    in_mem = _PF_PROCESSES.get(local_port)
+    _, pid_cmd = _pidfile_cmdline(pidfile)
+    owned_alive = (in_mem is not None and in_mem.poll() is None) or (
+        "kubectl" in pid_cmd and "port-forward" in pid_cmd and mapping in pid_cmd
+    )
+    if (
+        not force_restart
+        and owned_alive
+        and _probe_http(local_port, probe_path, expected)
+    ):
         return
     _terminate_proc(_PF_PROCESSES.pop(local_port, None))
     _stop_pidfile(pidfile)
@@ -364,11 +366,9 @@ def _start_single_pf(local_port: int, force_restart: bool = False) -> None:
         if not _port_open("127.0.0.1", local_port):
             break
         time.sleep(0.05)
-    if _port_open("127.0.0.1", local_port) and not _probe_http(
-        local_port, probe_path, expected
-    ):
+    if _port_open("127.0.0.1", local_port):
         raise UpstreamCommandError(
-            f"Local port 127.0.0.1:{local_port} is already occupied by another "
+            f"Local port 127.0.0.1:{local_port} is already occupied by an unowned "
             "process; override GATEWAY_LOCAL_PORT / PROM_LOCAL_PORT."
         )
     pf_cmd = ["kubectl", "port-forward", "--address", "127.0.0.1", "-n", ns]

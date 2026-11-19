@@ -24,20 +24,25 @@
 set -euo pipefail
 
 DELETE_SHARED_NETWORK="${DELETE_SHARED_NETWORK:-false}"
+ASSUME_YES="${ASSUME_YES:-false}"
+ALLOW_UNLABELED_CLUSTER_DELETE="${ALLOW_UNLABELED_CLUSTER_DELETE:-false}"
 for arg in "$@"; do
   case "${arg}" in
     --delete-network)
       DELETE_SHARED_NETWORK="true"
       ;;
     --yes)
-      # Accepted for non-interactive callers; shared VPC removal requires --delete-network.
+      ASSUME_YES="true"
+      ;;
+    --allow-unlabeled)
+      ALLOW_UNLABELED_CLUSTER_DELETE="true"
       ;;
     -h|--help)
-      echo "Usage: $0 [--yes] [--delete-network]"
+      echo "Usage: $0 [--yes] [--allow-unlabeled] [--delete-network]"
       exit 0
       ;;
     *)
-      echo "Error: unknown argument '${arg}'. Usage: $0 [--yes] [--delete-network]" >&2
+      echo "Error: unknown argument '${arg}'. Usage: $0 [--yes] [--allow-unlabeled] [--delete-network]" >&2
       exit 1
       ;;
   esac
@@ -55,63 +60,19 @@ cleanup_teardown_tmp() {
 }
 trap cleanup_teardown_tmp EXIT
 
-KUBE_CTX="$(kubectl config current-context 2>/dev/null || true)"
-CTX_PROJECT=""
-CTX_LOCATION=""
-CTX_CLUSTER=""
-if [[ "${KUBE_CTX}" =~ ^gke_([^_]+)_([^_]+)_(.+)$ ]]; then
-  CTX_PROJECT="${BASH_REMATCH[1]}"
-  CTX_LOCATION="${BASH_REMATCH[2]}"
-  CTX_CLUSTER="${BASH_REMATCH[3]}"
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/common.sh"
+resolve_demo_target "${STATE_DIR}"
+
+PROVISION_GCP_INFRA="${PROVISION_GCP_INFRA:-${STAGED[PROVISION_GCP_INFRA]:-true}}"
+if [[ "${PROVISION_GCP_INFRA}" == "false" && "${FORCE_OPTION_A_TEARDOWN:-false}" != "true" ]]; then
+  echo "Error: '${CLUSTER_NAME}' was staged with PROVISION_GCP_INFRA=false (Option B Terraform)." >&2
+  echo "Run ./terraform/teardown-standard.sh instead so Terraform state stays consistent." >&2
+  exit 1
 fi
 
-STAGED_PROJECT_ID=""
-STAGED_CLUSTER_NAME=""
-STAGED_CLUSTER_LOCATION=""
-STAGED_AR_REPO=""
-STAGED_BUCKET_NAME=""
-STAGED_GSA_NAME=""
-STAGED_NAMESPACE=""
-if [[ -f "${STATE_DIR}/staged.env" ]]; then
-  while IFS='=' read -r k v; do
-    case "${k}" in
-      PROJECT_ID) STAGED_PROJECT_ID="${v}" ;;
-      CLUSTER_NAME) STAGED_CLUSTER_NAME="${v}" ;;
-      CLUSTER_LOCATION) STAGED_CLUSTER_LOCATION="${v}" ;;
-      AR_REPO) STAGED_AR_REPO="${v}" ;;
-      BUCKET_NAME) STAGED_BUCKET_NAME="${v}" ;;
-      SNAPSHOT_TRANSFER_GSA_NAME) STAGED_GSA_NAME="${v}" ;;
-      NAMESPACE) STAGED_NAMESPACE="${v}" ;;
-    esac
-  done < "${STATE_DIR}/staged.env"
-fi
-
-TARGET_CLUSTER_HINT="${CLUSTER_NAME:-${CTX_CLUSTER:-${STAGED_CLUSTER_NAME:-}}}"
-if [[ -n "${STAGED_CLUSTER_NAME}" && "${TARGET_CLUSTER_HINT}" != "${STAGED_CLUSTER_NAME}" ]]; then
-  STAGED_PROJECT_ID=""
-  STAGED_CLUSTER_NAME=""
-  STAGED_CLUSTER_LOCATION=""
-  STAGED_AR_REPO=""
-  STAGED_BUCKET_NAME=""
-  STAGED_GSA_NAME=""
-  STAGED_NAMESPACE=""
-fi
-
-DEFAULT_PROJECT="$(gcloud config get-value project 2>/dev/null || true)"
-[[ "${DEFAULT_PROJECT}" == "(unset)" ]] && DEFAULT_PROJECT=""
-
-PROJECT_ID="${PROJECT_ID:-${CTX_PROJECT:-${STAGED_PROJECT_ID:-${DEFAULT_PROJECT}}}}"
-CLUSTER_NAME="${CLUSTER_NAME:-${CTX_CLUSTER:-${STAGED_CLUSTER_NAME:-agent-substrate-live}}}"
-CLUSTER_LOCATION="${CLUSTER_LOCATION:-${CTX_LOCATION:-${STAGED_CLUSTER_LOCATION:-us-central1-b}}}"
-if [[ -z "${REGION:-}" ]]; then
-  if [[ "${CLUSTER_LOCATION}" =~ -[a-z]$ ]]; then
-    REGION="${CLUSTER_LOCATION%-*}"
-  else
-    REGION="${CLUSTER_LOCATION}"
-  fi
-fi
-NAMESPACE="${NAMESPACE:-${STAGED_NAMESPACE:-agent-sandbox}}"
-AR_REPO="${AR_REPO:-${STAGED_AR_REPO:-agent-substrate}}"
+NAMESPACE="${NAMESPACE:-${STAGED[NAMESPACE]:-agent-sandbox}}"
+AR_REPO="${AR_REPO:-${STAGED[AR_REPO]:-agent-substrate}}"
 NETWORK="${NETWORK:-ai-agent-network}"
 SUBNETWORK="${SUBNETWORK:-${NETWORK%-network}-subnet-${REGION}}"
 ROUTER_NAME="${ROUTER_NAME:-${NETWORK}-router-${REGION}}"
@@ -119,26 +80,33 @@ NAT_NAME="${NAT_NAME:-${NETWORK}-nat-${REGION}}"
 CLEAN_CLUSTER_SLUG="$(printf '%s' "${CLUSTER_NAME}" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9-' | cut -c1-18 | sed 's/-\+$//')"
 RAW_BUCKET="$(printf '%s-%s-ate-snaps' "${PROJECT_ID:0:28}" "${CLUSTER_NAME:0:20}" | tr '[:upper:]' '[:lower:]' | sed 's/google/ggl/g' | tr -cd 'a-z0-9-' | sed 's/-\+$//; s/^-\+//')"
 DEFAULT_BUCKET_NAME="${RAW_BUCKET:0:63}"
-BUCKET_NAME="${BUCKET_NAME:-${STAGED_BUCKET_NAME:-${DEFAULT_BUCKET_NAME}}}"
-SNAPSHOT_TRANSFER_GSA_NAME="${SNAPSHOT_TRANSFER_GSA_NAME:-${STAGED_GSA_NAME:-ate-snap-${CLEAN_CLUSTER_SLUG:-gke}}}"
+BUCKET_NAME="${BUCKET_NAME:-${STAGED[BUCKET_NAME]:-${DEFAULT_BUCKET_NAME}}}"
+SNAPSHOT_TRANSFER_GSA_NAME="${SNAPSHOT_TRANSFER_GSA_NAME:-${STAGED[SNAPSHOT_TRANSFER_GSA_NAME]:-ate-snap-${CLEAN_CLUSTER_SLUG:-gke}}}"
 NODE_SA_NAME="${NODE_SA_NAME:-ate-nodes-${CLEAN_CLUSTER_SLUG:-gke}}"
 
 [[ -n "${PROJECT_ID}" ]] || { echo "Error: set PROJECT_ID=<gcp-project-id>" >&2; exit 1; }
 
+if [[ "${ASSUME_YES}" != "true" ]]; then
+  if [[ ! -t 0 ]]; then
+    echo "Error: refusing non-interactive teardown of '${CLUSTER_NAME}' in '${PROJECT_ID}' without --yes." >&2
+    exit 1
+  fi
+  read -r -p "Type '${CLUSTER_NAME}' to delete it from project '${PROJECT_ID}' (${CLUSTER_LOCATION}): " CONFIRM_CLUSTER
+  if [[ "${CONFIRM_CLUSTER}" != "${CLUSTER_NAME}" ]]; then
+    echo "Aborted." >&2
+    exit 1
+  fi
+fi
+
 FAILURES=0
 cleanup_ignore_not_found() {
   local desc="$1"; shift
-  local err_out lower rc=0
+  local err_out rc=0
   err_out="$("$@" 2>&1)" || rc=$?
   if [[ "${rc}" -eq 0 ]]; then
     return 0
   fi
-  lower="$(printf '%s' "${err_out}" | tr '[:upper:]' '[:lower:]')"
-  if [[ "${lower}" == *"not found"* \
-     || "${lower}" == *"not_found"* \
-     || "${lower}" == *"404"* \
-     || "${lower}" == *"does not exist"* \
-     || "${lower}" == *"matched no objects"* ]]; then
+  if is_not_found_output "${err_out}"; then
     return 0
   fi
   echo "Warning: failed to ${desc} (exit ${rc}): ${err_out}" >&2
@@ -158,7 +126,18 @@ if ! PROJECT_ID="${PROJECT_ID}" CLUSTER_NAME="${CLUSTER_NAME}" "${SCRIPT_DIR}/da
 fi
 
 echo "==> 3/6: Releasing PVCs and deleting GKE cluster '${CLUSTER_NAME}' (${CLUSTER_LOCATION})"
-if gcloud container clusters describe "${CLUSTER_NAME}" --location "${CLUSTER_LOCATION}" --project "${PROJECT_ID}" >/dev/null 2>&1; then
+CLUSTER_DESC_RC=0
+CLUSTER_DESC_OUT="$(gcloud container clusters describe "${CLUSTER_NAME}" \
+  --location "${CLUSTER_LOCATION}" --project "${PROJECT_ID}" \
+  --format='value(status,resourceLabels.created-by,resourceLabels.managed-by)' 2>&1)" || CLUSTER_DESC_RC=$?
+if [[ "${CLUSTER_DESC_RC}" -eq 0 ]]; then
+  if [[ "${CLUSTER_DESC_OUT}" != *"agent-substrate-demo"* \
+     && "${ASSUME_YES}" == "true" \
+     && "${ALLOW_UNLABELED_CLUSTER_DELETE}" != "true" ]]; then
+    echo "Error: cluster '${CLUSTER_NAME}' lacks label created-by=agent-substrate-demo." >&2
+    echo "Re-run interactively without --yes to confirm deletion, or pass --allow-unlabeled." >&2
+    exit 1
+  fi
   TMP_KC="$(mktemp)"
   chmod 0600 "${TMP_KC}"
   KC_READY="false"
@@ -185,6 +164,9 @@ if gcloud container clusters describe "${CLUSTER_NAME}" --location "${CLUSTER_LO
     --location "${CLUSTER_LOCATION}" \
     --project "${PROJECT_ID}" \
     --quiet
+elif ! is_not_found_output "${CLUSTER_DESC_OUT}"; then
+  echo "Error: failed to inspect GKE cluster '${CLUSTER_NAME}' (${CLUSTER_DESC_OUT}); aborting so live node ServiceAccounts are not deleted." >&2
+  exit 1
 fi
 
 echo "==> 4/6: Deleting demo-labeled GCS snapshot bucket (gs://${BUCKET_NAME}) and dedicated ServiceAccounts"
@@ -201,6 +183,15 @@ if gcloud storage buckets describe "gs://${BUCKET_NAME}" --project "${PROJECT_ID
 fi
 
 NODE_SA_EMAIL="${NODE_SA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
+if gcloud artifacts repositories describe "${AR_REPO}" --location "${REGION}" --project "${PROJECT_ID}" >/dev/null 2>&1; then
+  cleanup_ignore_not_found "remove Artifact Registry reader from ${NODE_SA_EMAIL}" \
+    gcloud artifacts repositories remove-iam-policy-binding "${AR_REPO}" \
+      --location="${REGION}" \
+      --project="${PROJECT_ID}" \
+      --member="serviceAccount:${NODE_SA_EMAIL}" \
+      --role="roles/artifactregistry.reader" \
+      --condition=None --quiet
+fi
 for role in \
   roles/container.defaultNodeServiceAccount \
   roles/logging.logWriter \
@@ -213,16 +204,12 @@ for role in \
       --role="${role}" \
       --condition=None --quiet
 done
-if gcloud iam service-accounts describe "${NODE_SA_EMAIL}" --project "${PROJECT_ID}" >/dev/null 2>&1; then
-  cleanup_ignore_not_found "delete node ServiceAccount ${NODE_SA_EMAIL}" \
-    gcloud iam service-accounts delete "${NODE_SA_EMAIL}" --project "${PROJECT_ID}" --quiet
-fi
+cleanup_ignore_not_found "delete node ServiceAccount ${NODE_SA_EMAIL}" \
+  gcloud iam service-accounts delete "${NODE_SA_EMAIL}" --project "${PROJECT_ID}" --quiet
 
 TRANSFER_GSA_EMAIL="${SNAPSHOT_TRANSFER_GSA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
-if gcloud iam service-accounts describe "${TRANSFER_GSA_EMAIL}" --project "${PROJECT_ID}" >/dev/null 2>&1; then
-  cleanup_ignore_not_found "delete snapshot transfer ServiceAccount ${TRANSFER_GSA_EMAIL}" \
-    gcloud iam service-accounts delete "${TRANSFER_GSA_EMAIL}" --project "${PROJECT_ID}" --quiet
-fi
+cleanup_ignore_not_found "delete snapshot transfer ServiceAccount ${TRANSFER_GSA_EMAIL}" \
+  gcloud iam service-accounts delete "${TRANSFER_GSA_EMAIL}" --project "${PROJECT_ID}" --quiet
 
 # Abort immediately (no `|| true`) if listing clusters fails so shared resources are never removed blindly.
 REMAINING_REGION_CLUSTERS="$(gcloud container clusters list --project "${PROJECT_ID}" --filter="network~'(^|/)${NETWORK}$' AND location~'^${REGION}(-|$)'" --format='value(name)')"
@@ -288,10 +275,9 @@ else
   echo "  Note: preserving shared VPC '${NETWORK}' (pass --delete-network to remove)."
 fi
 
-rm -rf "${STATE_DIR}"
-
 if (( FAILURES > 0 )); then
-  echo "Error: Option A teardown finished with ${FAILURES} error(s) for '${CLUSTER_NAME}' in '${PROJECT_ID}'." >&2
+  echo "Error: Option A teardown finished with ${FAILURES} error(s) for '${CLUSTER_NAME}' in '${PROJECT_ID}' (preserving ${STATE_DIR} for retry)." >&2
   exit 1
 fi
+rm -rf "${STATE_DIR}"
 echo "Option A teardown complete for '${CLUSTER_NAME}' in '${PROJECT_ID}'."

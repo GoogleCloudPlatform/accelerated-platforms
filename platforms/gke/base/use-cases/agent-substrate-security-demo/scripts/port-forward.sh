@@ -112,10 +112,7 @@ ensure_managed_port_forward() {
   if port_is_listening "${lport}"; then
     sleep 0.3
     if port_is_listening "${lport}"; then
-      if probe_matches "${lport}" "${probe_path}" "${expected}" && [[ -n "${expected}" ]]; then
-        return 0
-      fi
-      echo "Error: local port 127.0.0.1:${lport} is already occupied by an unrelated listener." >&2
+      echo "Error: local port 127.0.0.1:${lport} is already occupied by an unowned listener." >&2
       echo "Set GATEWAY_LOCAL_PORT or PROM_LOCAL_PORT to an unused local port and retry." >&2
       return 1
     fi

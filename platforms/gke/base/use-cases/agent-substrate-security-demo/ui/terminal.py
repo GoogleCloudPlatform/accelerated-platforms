@@ -327,7 +327,12 @@ def api_custom_python(body: dict[str, Any]) -> dict[str, Any]:
         raise
     kube.suspend_actor_checked("py-detonation-agent", timeout=20)
 
-    exit_code = int(resp.get("exit_code") or 0)
+    raw_rc = resp.get("exit_code")
+    if isinstance(raw_rc, bool) or not isinstance(raw_rc, int):
+        raise kube.UpstreamCommandError(
+            f"Sandbox probe response missing integer exit_code: {resp}"
+        )
+    exit_code = raw_rc
     stdout = str(resp.get("stdout") or "")
     stderr = str(resp.get("stderr") or "")
     combined_out = "\n".join(part for part in (stdout.strip(), stderr.strip()) if part)

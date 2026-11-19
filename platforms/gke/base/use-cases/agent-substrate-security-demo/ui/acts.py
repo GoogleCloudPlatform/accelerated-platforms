@@ -433,6 +433,7 @@ def api_act3_egress_suite() -> dict[str, Any]:
     )
     fetch_base = f"{kube.GATEWAY_URL}/actors/egress-agent/fetch"
     try:
+        real_secret = probes.read_example_api_secret()
         test_a = kube.http_json(
             f"{fetch_base}?" + urlencode({"url": partner_url}),
             method="GET",
@@ -443,10 +444,10 @@ def api_act3_egress_suite() -> dict[str, Any]:
                 f"Act 3 Test A ({partner_url}) failed: {test_a['error']}"
             )
         hmac_prefix = str(test_a.get("credential_hmac_prefix") or "").strip()
-        if not (
+        serialized_a = json.dumps(test_a)
+        if real_secret in serialized_a or not (
             test_a.get("authenticated") is True
             and test_a.get("placeholder_replaced") is True
-            and test_a.get("raw_secret_returned") is False
             and hmac_prefix.startswith("hmac-sha256:")
         ):
             raise kube.UpstreamCommandError(
@@ -459,6 +460,16 @@ def api_act3_egress_suite() -> dict[str, Any]:
         )
         dns_block_summary = probes.verify_dns_block_response(test_b, target_b)
         dns_block_msg = str(test_b.get("error") or "").strip()
+
+        control_a = kube.http_json(
+            f"{fetch_base}?" + urlencode({"url": partner_url}),
+            method="GET",
+            timeout=15.0,
+        )
+        if control_a.get("authenticated") is not True:
+            raise kube.UpstreamCommandError(
+                f"Post-DNS-block positive control failed ({partner_url}): {control_a}"
+            )
 
         target_c = "http://1.1.1.1/"
         test_c = kube.http_json(

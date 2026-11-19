@@ -225,8 +225,10 @@ async function runPrometheusQuery(customExpr) {
 async function runAct2() {
   clearError();
   const btn = document.getElementById('btn-s0');
+  const clonePill = document.getElementById('act2-clone-pill');
   btn.disabled = true;
   btn.textContent = '⚡ Running Live Snapshot Restore + Verifying Forensic Clone...';
+  if (clonePill) clonePill.textContent = '⏳ Cloning & verifying clean-checkpoint-tag...';
   try {
     const d = await postJson('/api/act2-snapshots', {});
     const traceShort = d.trace_id ? d.trace_id.slice(0, 8) + '...' : 'n/a';
@@ -247,7 +249,6 @@ async function runAct2() {
     document.getElementById('s0-stat-line').textContent =
       `CLI round-trip: ${d.cli_roundtrip_resume_ms ?? 'n/a'} ms · Live OpenTelemetry Trace ID: ${traceMed}`;
 
-    const clonePill = document.getElementById('act2-clone-pill');
     if (d.boot_ids_match === true) {
       clonePill.innerHTML =
         `🔬 <strong>Forensic Clone Verified:</strong> <code class="mono">gemini-agent-forensic</code> cloned from <code class="mono">clean-checkpoint-tag</code> (bootID=<code class="mono">${escapeHtml(d.forensic_boot_id || 'n/a')}</code> preserved)`;
@@ -316,14 +317,13 @@ async function runRound1() {
       const hk = document.getElementById('host-kernel-label');
       if (hk) hk.textContent = 'Host Kernel ' + hostKern;
     }
-    if (p.kernel) {
-      document.getElementById('proof-sandbox').textContent =
-        'ateworker-gvisor (' + p.kernel + ')';
-    }
     const sandboxKern = String(p.kernel || '');
     const kernelOk =
       Boolean(sandboxKern) &&
       (hostKern ? !sandboxKern.includes(hostKern) : sandboxKern.startsWith('Linux 4.'));
+    document.getElementById('proof-sandbox').textContent = kernelOk
+      ? 'ateworker-gvisor (' + sandboxKern + ')'
+      : 'unverified (' + (sandboxKern || 'n/a') + ')';
     const mountOk = p.mount_blocked === true;
     const procOk = Boolean(p.proc_escape) && !String(p.proc_escape).startsWith('EXPOSED');
     const secretsList = Array.isArray(p.secret_env_vars) ? p.secret_env_vars : null;
@@ -442,7 +442,7 @@ async function approveAndDetonateProbe() {
   try {
     const d = await postJson('/api/custom-python', {code: codeVal, prompt: activePromptContext});
     const out = [d.stdout, d.stderr].map((s) => (s || '').trim()).filter(Boolean).join('\n') || '(no output)';
-    const statusIcon = d.exit_code === 0 ? '🛡️' : '⚠️';
+    const statusIcon = d.exit_code === 0 ? '▶' : '⚠️';
     outEl.textContent = `${statusIcon} gVisor Sandbox Output (${d.actor} · exit ${d.exit_code} · ${d._exec_ms} ms):\n${out}`;
     outEl.scrollTop = 0;
     outEl.scrollIntoView({behavior: 'smooth', block: 'nearest'});
@@ -564,7 +564,7 @@ async function runRound3Revert() {
     const b = dRev.brain || {};
     const isClean = b.verdict === 'CLEAN';
     const msText = dRev.restore_label || `${dRev.cli_resume_ms ?? 'n/a'} ms CLI`;
-    const shortMs = dRev.gcs_restore_avg_ms != null ? `${dRev.gcs_restore_avg_ms} ms GCS` : `${dRev.cli_resume_ms ?? 'n/a'} ms`;
+    const shortMs = `${dRev.cli_resume_ms ?? 'n/a'} ms CLI`;
     const traceShort = (dRev.trace_id || '').slice(0, 12);
     revealAct4Badge(2, `${isClean ? '🟢 HEALED:' : '🚨 ERROR:'} ${b.approval_policy ?? 'n/a'} · RAM=${b.mem_count ?? 'n/a'} · /data=${b.disk_count ?? 'n/a'}`, 0, !isClean);
     revealAct4Badge(3, `⚡ ${msText} · Trace: ${traceShort ? traceShort + '...' : 'n/a'}`, 200, false);

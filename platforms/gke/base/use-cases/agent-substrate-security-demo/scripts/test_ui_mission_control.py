@@ -441,7 +441,9 @@ class MissionControlRegressionTest(unittest.TestCase):
         with (
             mock.patch.object(kube, "ensure_port_forwards"),
             mock.patch.object(kube, "detect_cluster_meta", return_value=meta),
-            mock.patch.object(kube, "http_json", return_value={"stdout": probe_json}),
+            mock.patch.object(
+                kube, "http_json", return_value={"exit_code": 0, "stdout": probe_json}
+            ),
             mock.patch.object(kube, "suspend_actor_checked", return_value="ok"),
         ):
             r1 = acts.api_round1_detonate()
@@ -472,6 +474,9 @@ class MissionControlRegressionTest(unittest.TestCase):
         )
         with (
             mock.patch.object(kube, "ensure_port_forwards"),
+            mock.patch.object(
+                probes, "read_example_api_secret", return_value="demo-real-secret"
+            ),
             mock.patch.object(kube, "http_json", side_effect=_act3_http),
             mock.patch.object(kube, "run_cmd", return_value=(valid_pol, "", 0)),
             mock.patch.object(kube, "suspend_actor_checked", return_value="ok"),
@@ -482,6 +487,9 @@ class MissionControlRegressionTest(unittest.TestCase):
 
         with (
             mock.patch.object(kube, "ensure_port_forwards"),
+            mock.patch.object(
+                probes, "read_example_api_secret", return_value="demo-real-secret"
+            ),
             mock.patch.object(kube, "http_json", side_effect=_act3_http),
             mock.patch.object(kube, "run_cmd", return_value=("rules: []", "", 0)),
             self.assertRaises(kube.UpstreamCommandError),

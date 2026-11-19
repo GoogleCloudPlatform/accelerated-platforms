@@ -19,7 +19,10 @@ doseq
 dotall
 eacces
 ecdsap
+econnrefused
+ehostunreach
 embracethered
+enetunreach
 enoent
 eperm
 errorcode

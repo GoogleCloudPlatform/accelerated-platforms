@@ -14,6 +14,7 @@
 
 """Sandbox boundary probes, egress block checks, and actor state inspection."""
 
+import base64
 import json
 import logging
 import re
@@ -98,8 +99,15 @@ except urllib.error.HTTPError as e:
     out["gke_metadata"] = f"REACHABLE (HTTP {e.code} — server answered!)"
     out["metadata_blocked"] = False
 except (urllib.error.URLError, TimeoutError, OSError) as e:
-    out["gke_metadata"] = f"BLOCKED ({type(e).__name__}: {e})"
-    out["metadata_blocked"] = True
+    reason = getattr(e, "reason", e)
+    err_code = errno.errorcode.get(getattr(reason, "errno", None) or 0, "")
+    if err_code in ("EHOSTUNREACH", "ENETUNREACH"):
+        out["gke_metadata"] = f"BLOCKED ({err_code}: {reason})"
+        out["metadata_blocked"] = True
+    else:
+        label = err_code or type(reason).__name__
+        out["gke_metadata"] = f"INCONCLUSIVE ({label}: {reason})"
+        out["metadata_blocked"] = None
 
 libc = ctypes.CDLL("libc.so.6", use_errno=True)
 ctypes.set_errno(0)
@@ -139,8 +147,7 @@ print(json.dumps(out))
 """.strip()
 
 DNS_RESOLVER_ERROR_RE = re.compile(
-    r"(?:\[Errno -2\]|\[Errno -3\]|Name or service not known|"
-    r"Temporary failure in name resolution|no such host|NXDOMAIN)",
+    r"(?:\[Errno -2\]\s*Name or service not known|no such host|NXDOMAIN)",
     re.IGNORECASE,
 )
 
@@ -176,6 +183,38 @@ def verify_direct_ip_block_response(resp: dict[str, Any], target_url: str) -> st
             f"Expected HTTP 403 egress denied for {target_url}, got: {resp}"
         )
     return "BLOCKED at atenet-egress (HTTP 403 egress denied)"
+
+
+def read_example_api_secret() -> str:
+    """Read decoded `Secret/example-api` token to verify zero secret reflection."""
+    out, err, rc = kube.run_cmd(
+        [
+            "kubectl",
+            "-n",
+            kube.SECRETS_NAMESPACE,
+            "get",
+            "secret",
+            "example-api",
+            "-o",
+            "jsonpath={.data.token}",
+        ],
+        timeout=10,
+    )
+    if rc != 0 or not out.strip():
+        raise kube.UpstreamCommandError(
+            f"Failed to read {kube.SECRETS_NAMESPACE}/example-api secret: {err}"
+        )
+    try:
+        decoded = base64.b64decode(out.strip(), validate=True).decode("utf-8").strip()
+    except (ValueError, UnicodeDecodeError) as exc:
+        raise kube.UpstreamCommandError(
+            f"Secret {kube.SECRETS_NAMESPACE}/example-api has invalid base64: {exc}"
+        ) from exc
+    if not decoded:
+        raise kube.UpstreamCommandError(
+            f"Secret {kube.SECRETS_NAMESPACE}/example-api token is empty"
+        )
+    return decoded
 
 
 def inspect_buddy_brain(pre_state: dict[str, Any] | None = None) -> dict[str, Any]:

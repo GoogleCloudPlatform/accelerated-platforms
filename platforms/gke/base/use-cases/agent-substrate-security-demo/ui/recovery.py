@@ -369,7 +369,7 @@ def api_round3_revert_and_trace() -> dict[str, Any]:
 
     gcs_restore_avg_ms = kube.query_restore_ms(kind="latest", phase="total")
     restore_label = (
-        f"{gcs_restore_avg_ms} ms GMP kind=latest avg"
+        f"{resume_cli_ms} ms CLI ({gcs_restore_avg_ms} ms GMP kind=latest avg)"
         if gcs_restore_avg_ms is not None
         else f"{resume_cli_ms} ms CLI wall-clock"
     )

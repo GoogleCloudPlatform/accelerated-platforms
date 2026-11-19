@@ -106,7 +106,13 @@ try:
 except urllib.error.HTTPError as exc:
     meta = {"blocked": False, "detail": f"REACHABLE (HTTP {exc.code})"}
 except (urllib.error.URLError, TimeoutError, OSError) as exc:
-    meta = {"blocked": True, "detail": f"{type(exc).__name__}: {exc}"}
+    reason = getattr(exc, "reason", exc)
+    err_code = errno.errorcode.get(getattr(reason, "errno", None) or 0, "")
+    if err_code in ("EHOSTUNREACH", "ENETUNREACH"):
+        meta = {"blocked": True, "detail": f"{err_code}: {reason}"}
+    else:
+        label = err_code or type(reason).__name__
+        meta = {"blocked": None, "detail": f"INCONCLUSIVE ({label}: {reason})"}
 
 secret_vars = [
     k for k in os.environ
@@ -175,11 +181,20 @@ echo "==========================================================================
 echo "ACT 3: ZERO-SECRET EGRESS — WIRE CREDENTIAL SWAP, DNS RELAY & DIRECT-IP DENIAL"
 echo "================================================================================"
 PARTNER_URL="http://partner-api.${SECRETS_NAMESPACE}.svc.cluster.local/verify"
+REAL_API_SECRET="$(kubectl -n "${SECRETS_NAMESPACE}" get secret example-api -o jsonpath='{.data.token}' | base64 -d)"
+[[ -n "${REAL_API_SECRET}" ]] || {
+  echo "Error: Secret ${SECRETS_NAMESPACE}/example-api token is empty." >&2
+  exit 1
+}
 echo "-> Test A (Allowlisted ${PARTNER_URL}): Sandbox sends 'Bearer placeholder' -> atenet-egress swaps secret on wire (non-reflecting verification):"
 TEST_A="$(curl -fsSG --max-time 30 "http://127.0.0.1:${GATEWAY_LOCAL_PORT}/actors/egress-agent/fetch" \
   "${AUTH_HDR[@]}" --data-urlencode "url=${PARTNER_URL}")"
 jq . <<<"${TEST_A}"
-jq -e '.authenticated == true and .placeholder_replaced == true and .raw_secret_returned == false and (.credential_hmac_prefix | startswith("hmac-sha256:"))' <<<"${TEST_A}" >/dev/null
+if [[ "${TEST_A}" == *"${REAL_API_SECRET}"* ]]; then
+  echo "Error: raw Secret/example-api value leaked in Test A response." >&2
+  exit 1
+fi
+jq -e '.authenticated == true and .placeholder_replaced == true and (.credential_hmac_prefix | startswith("hmac-sha256:"))' <<<"${TEST_A}" >/dev/null
 
 echo "-> Test B (Unlisted FQDN ${TEST_B_URL}): Blocked before TCP connect by Local DNS Relay:"
 TEST_B_OUT="$(mktemp "${STATE_DIR}/act3-test-b.XXXXXX")"
@@ -194,8 +209,7 @@ http_code, target_url, body_path = sys.argv[1], sys.argv[2], sys.argv[3]
 body = open(body_path, encoding="utf-8", errors="replace").read().strip()
 expected_prefix = f'fetch: Get "{target_url}":'
 dns_sig_re = re.compile(
-    r"(?:\[Errno -2\]|\[Errno -3\]|Name or service not known|"
-    r"Temporary failure in name resolution|no such host|NXDOMAIN)",
+    r"(?:\[Errno -2\]\s*Name or service not known|no such host|NXDOMAIN)",
     re.I,
 )
 if http_code != "502" or not body.startswith(expected_prefix) or not dns_sig_re.search(body):
@@ -204,6 +218,9 @@ if http_code != "502" or not body.startswith(expected_prefix) or not dns_sig_re.
         f"{target_url}, got HTTP {http_code} body={body!r}"
     )
 EOF
+TEST_A_CONTROL="$(curl -fsSG --max-time 20 "http://127.0.0.1:${GATEWAY_LOCAL_PORT}/actors/egress-agent/fetch" \
+  "${AUTH_HDR[@]}" --data-urlencode "url=${PARTNER_URL}")"
+jq -e '.authenticated == true' <<<"${TEST_A_CONTROL}" >/dev/null
 
 echo "-> Test C (Direct-IP Bypass ${TEST_C_URL}): Blocked at atenet-egress (HTTP 403 egress denied):"
 TEST_C_OUT="$(mktemp "${STATE_DIR}/act3-test-c.XXXXXX")"

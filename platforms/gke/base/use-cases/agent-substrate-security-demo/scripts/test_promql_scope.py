@@ -14,6 +14,8 @@
 
 """Unit tests for promql_scope plus static CI checks on scripts & templates."""
 
+import base64
+import errno
 import io
 import json
 import subprocess
@@ -33,6 +35,7 @@ for _p in (str(BASE_DIR / "ui"), str(BASE_DIR / "scripts")):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
+import acts
 import kube
 import probes
 import promql_scope
@@ -346,6 +349,117 @@ class PromqlScopeTest(unittest.TestCase):
         finally:
             srv.shutdown()
             srv.server_close()
+
+    def test_e2e_verdict_signatures_secret_leak_and_exit_code_guards(self) -> None:
+        def _run_act1_meta(side_eff: Exception) -> dict[str, object]:
+            fake_libc = mock.MagicMock()
+            fake_libc.mount.return_value = -1
+            buf = io.StringIO()
+            with (
+                mock.patch("urllib.request.urlopen", side_effect=side_eff),
+                mock.patch("ctypes.CDLL", return_value=fake_libc),
+                mock.patch("ctypes.set_errno"),
+                mock.patch("ctypes.get_errno", return_value=errno.EPERM),
+                mock.patch("os.stat", return_value=mock.MagicMock(st_mode=0o40777)),
+                mock.patch("builtins.open", side_effect=PermissionError("blocked")),
+                mock.patch("sys.stdout", buf),
+            ):
+                exec(  # noqa: S102
+                    probes.ROUND1_PYTHON_SCRIPT, {"__name__": "__probe__"}
+                )
+            return json.loads(buf.getvalue().strip())
+
+        no_route = urllib.error.URLError(
+            OSError(errno.EHOSTUNREACH, "No route to host")
+        )
+        ok_out = _run_act1_meta(no_route)
+        self.assertIs(ok_out["metadata_blocked"], True)
+        self.assertIn("EHOSTUNREACH", str(ok_out["gke_metadata"]))
+
+        for err_case in (
+            TimeoutError("timed out"),
+            urllib.error.URLError(OSError(errno.ECONNREFUSED, "Connection refused")),
+        ):
+            inc_out = _run_act1_meta(err_case)
+            self.assertIsNone(inc_out["metadata_blocked"])
+            self.assertIn("INCONCLUSIVE", str(inc_out["gke_metadata"]))
+
+        transient_dns = {
+            "status": 502,
+            "error": (
+                'HTTP 502: fetch: Get "https://example.com/": '
+                "<urlopen error [Errno -3] Temporary failure in name resolution>"
+            ),
+        }
+        with self.assertRaises(kube.UpstreamCommandError):
+            probes.verify_dns_block_response(transient_dns, "https://example.com/")
+
+        b64_tok = base64.b64encode(b"live-secret-val").decode("ascii")
+        with mock.patch.object(kube, "run_cmd", return_value=(b64_tok, "", 0)):
+            self.assertEqual(probes.read_example_api_secret(), "live-secret-val")
+        with (
+            mock.patch.object(kube, "run_cmd", return_value=("!bad!", "", 0)),
+            self.assertRaises(kube.UpstreamCommandError),
+        ):
+            probes.read_example_api_secret()
+
+        leak_http = [
+            {
+                "authenticated": True,
+                "placeholder_replaced": True,
+                "raw_secret_returned": False,
+                "credential_hmac_prefix": "hmac-sha256:0123456789ab",
+                "debug": "Bearer live-secret-val",
+            }
+        ]
+        with (
+            mock.patch.object(kube, "ensure_port_forwards"),
+            mock.patch.object(
+                probes, "read_example_api_secret", return_value="live-secret-val"
+            ),
+            mock.patch.object(kube, "http_json", side_effect=leak_http),
+            mock.patch.object(probes, "suspend_actor_best_effort"),
+            self.assertRaises(kube.UpstreamCommandError),
+        ):
+            acts.api_act3_egress_suite()
+
+        post_b_fail = iter(
+            [
+                {
+                    "authenticated": True,
+                    "placeholder_replaced": True,
+                    "credential_hmac_prefix": "hmac-sha256:0123456789ab",
+                },
+                {
+                    "status": 502,
+                    "error": (
+                        'HTTP 502: fetch: Get "https://example.com/": '
+                        "<urlopen error [Errno -2] Name or service not known>"
+                    ),
+                },
+                {"error": "HTTP 502: resolver dead"},
+            ]
+        )
+        with (
+            mock.patch.object(kube, "ensure_port_forwards"),
+            mock.patch.object(
+                probes, "read_example_api_secret", return_value="live-secret-val"
+            ),
+            mock.patch.object(
+                kube, "http_json", side_effect=lambda *_a, **_k: next(post_b_fail)
+            ),
+            mock.patch.object(probes, "suspend_actor_best_effort"),
+            self.assertRaises(kube.UpstreamCommandError),
+        ):
+            acts.api_act3_egress_suite()
+
+        with (
+            mock.patch.object(kube, "ensure_port_forwards"),
+            mock.patch.object(kube, "http_json", return_value={"stdout": "hi"}),
+            mock.patch.object(kube, "suspend_actor_checked", return_value="ok"),
+            self.assertRaises(kube.UpstreamCommandError),
+        ):
+            acts.api_custom_python({"probe_id": 0})
 
 
 if __name__ == "__main__":

@@ -70,10 +70,13 @@ chmod 0600 "${AUTH_HEADER_FILE}"
 printf 'X-Gateway-Admin-Token: %s\n' "${ADMIN_TOKEN}" > "${AUTH_HEADER_FILE}"
 AUTH_HDR=(-H "@${AUTH_HEADER_FILE}")
 
-# Ensure all 2-slot WorkerPool slots start free before Act 1 wakes py-detonation-agent.
+# Free both WorkerPool slots before Act 1 wakes py-detonation-agent. An actor
+# that is still running was left by an earlier run or UI session, possibly with
+# a hijacked policy. Revert discards that session; suspend would save it as the
+# actor's snapshot.
 for act in py-detonation-agent egress-agent gemini-agent gemini-agent-forensic; do
   if [[ "$(kubectl ate get actor "${act}" -a "${ATESPACE}" -o json 2>/dev/null | jq -r '.status.state // ""')" == "ACTOR_STATE_RUNNING" ]]; then
-    kubectl ate suspend actor "${act}" -a "${ATESPACE}" >/dev/null
+    kubectl ate revert actor "${act}" -a "${ATESPACE}" >/dev/null
   fi
 done
 

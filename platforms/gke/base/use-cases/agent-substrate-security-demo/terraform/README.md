@@ -85,7 +85,10 @@ cluster (`Option A`).
    ```
 
 1. Run the 4-Act Red Team vs. Blue Team live CLI verification (approximately 60
-   seconds; exits non-zero if any assertion fails):
+   seconds; exits non-zero if any assertion fails). In Act 4 the model may
+   answer the injection without calling the tool; the script then discards that
+   session and sends the injection again, up to `ACT4_MAX_ATTEMPTS` times
+   (default 3):
 
    ```shell
    ./platforms/gke/base/use-cases/agent-substrate-security-demo/scripts/run_4_act_demo.sh

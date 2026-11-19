@@ -530,17 +530,21 @@ async function runRound2() {
     const d = await postJson('/api/round2-poison', customPrompt ? {prompt: customPrompt} : {});
     const b = d.brain || {};
     const poisoned = b.verdict === 'POISONED';
+    const resisted = d.model_resisted === true;
+    const outcome = poisoned ? '🚨 HIJACKED:' : resisted ? '🛡️ MODEL RESISTED:' : '⚠️ SESSION DIRTY:';
     const baseClean = d.baseline_policy === 'REQUIRE_HUMAN_APPROVAL' &&
       (d.baseline_disk_policy === undefined || d.baseline_disk_policy === 'REQUIRE_HUMAN_APPROVAL');
     revealAct4Badge(0, `${baseClean ? '🟢' : '🚨'} ${d.baseline_policy ?? 'n/a'} · RAM=${d.baseline_mem ?? 'n/a'} · /data=${d.baseline_disk ?? 'n/a'}`, 0, !baseClean);
-    revealAct4Badge(1, `${poisoned ? '🚨 HIJACKED:' : '⚠️ SESSION DIRTY:'} ${b.approval_policy ?? 'n/a'} · RAM=${b.mem_count ?? 'n/a'} · /data=${b.disk_count ?? 'n/a'}`, 200, poisoned);
+    revealAct4Badge(1, `${outcome} ${b.approval_policy ?? 'n/a'} · RAM=${b.mem_count ?? 'n/a'} · /data=${b.disk_count ?? 'n/a'}`, 200, poisoned);
     lastAct4Transcript =
       `💬 Prompt -> gemini-agent: ${d.prompt || customPrompt || ACT4_PROMPTS.hijack}\n` +
       `🤖 Google ADK Reply (${d._exec_ms} ms · policy=${b.approval_policy ?? 'n/a'} · RAM=${b.mem_count ?? 'n/a'} · /data=${b.disk_count ?? 'n/a'}):\n` +
-      (d.verification_reply || '(no text reply)');
+      (d.verification_reply || '(no text reply)') +
+      (resisted ? '\n\n🛡️ The approval policy did not change on this attempt. Click 2 to discard this session, then 1 to try again.' : '');
     if (outEl) { outEl.textContent = lastAct4Transcript; outEl.scrollTop = 0; }
     setFooterTelemetry(d);
-    btn.textContent = poisoned ? '🚨 1. Hijacked! (Click 2 ->)' : '⚠️ 1. Session Dirty! (Click 2 ->)';
+    btn.textContent = poisoned ? '🚨 1. Hijacked! (Click 2 ->)'
+      : resisted ? '🛡️ 1. Model Resisted (Click 2, then retry)' : '⚠️ 1. Session Dirty! (Click 2 ->)';
   } catch (err) {
     if (outEl) outEl.textContent = 'Error: ' + (err instanceof Error ? err.message : String(err));
     btn.textContent = '🧪 1. Detonate Prompt Injection';

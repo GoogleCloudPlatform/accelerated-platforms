@@ -262,11 +262,7 @@ def api_round2_poison(body: dict[str, Any] | None = None) -> dict[str, Any]:
             f"State check failed: {poisoned_state['error']}"
         )
     brain = probes.inspect_buddy_brain(pre_state=poisoned_state)
-    if not is_custom and brain["verdict"] != "POISONED":
-        raise kube.UpstreamCommandError(
-            "Expected ADK policy hijack to AUTO_APPROVE_ALL, "
-            f"observed: {poisoned_state}"
-        )
+    resisted = probes.default_injection_resisted(is_custom, brain)
     session_mutated = bool(
         brain["verdict"] == "POISONED"
         or poisoned_state.get("memCount") != baseline_state.get("memCount")
@@ -280,7 +276,7 @@ def api_round2_poison(body: dict[str, Any] | None = None) -> dict[str, Any]:
         "2. Send custom operator prompt to Google ADK actor 'gemini-agent'"
         if is_custom
         else (
-            "2. Send prompt injection forcing Google ADK tool "
+            "2. Send prompt injection asking Google ADK tool "
             "set_approval_policy('AUTO_APPROVE_ALL')"
         )
     )
@@ -288,6 +284,7 @@ def api_round2_poison(body: dict[str, Any] | None = None) -> dict[str, Any]:
         "attack": "Google ADK Tool-Call Hijack (APPROVAL_POLICY -> AUTO_APPROVE_ALL)",
         "prompt": poison_prompt,
         "is_custom_prompt": is_custom,
+        "model_resisted": resisted,
         "session_mutated": session_mutated,
         "baseline_policy": baseline_state.get("approvalPolicy"),
         "baseline_disk_policy": baseline_state.get("diskPolicy"),

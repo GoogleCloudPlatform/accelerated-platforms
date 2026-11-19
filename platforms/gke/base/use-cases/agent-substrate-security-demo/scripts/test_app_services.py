@@ -106,8 +106,12 @@ def _install_adk_stubs() -> None:
     events_mod.Event = _StubEvent  # type: ignore[attr-defined]
     models_mod.Gemini = lambda **kw: kw  # type: ignore[attr-defined]
     runners_mod.InMemoryRunner = _StubRunner  # type: ignore[attr-defined]
-    genai_types_mod.Content = _StubContent  # type: ignore[attr-defined]
-    genai_types_mod.Part = _StubPart  # type: ignore[attr-defined]
+    gt_any: Any = genai_types_mod
+    gt_any.Content = _StubContent
+    gt_any.Part = _StubPart
+    gt_any.ThinkingLevel = types.SimpleNamespace(LOW="LOW")
+    gt_any.ThinkingConfig = lambda **kw: kw
+    gt_any.GenerateContentConfig = lambda **kw: kw
     genai_mod.types = genai_types_mod  # type: ignore[attr-defined]
     google.adk = adk_mod  # type: ignore[attr-defined]
     google.genai = genai_mod  # type: ignore[attr-defined]

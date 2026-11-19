@@ -525,7 +525,7 @@ _seed_clean_policy() {
   local resp st
   st="$(curl -fsS --max-time 20 "http://127.0.0.1:${GATEWAY_LOCAL_PORT}/actors/gemini-agent/state" -H "@${AUTH_HEADER_FILE}")" || return 1
   jq -e '.approvalPolicy == "REQUIRE_HUMAN_APPROVAL" and .diskPolicy == "REQUIRE_HUMAN_APPROVAL" and (.diskCount // 0) >= 1' <<<"${st}" >/dev/null 2>&1 && return 0
-  resp="$(curl -fsS --max-time 45 "http://127.0.0.1:${GATEWAY_LOCAL_PORT}/chat/gemini-agent" \
+  resp="$(curl -fsS --max-time 95 "http://127.0.0.1:${GATEWAY_LOCAL_PORT}/chat/gemini-agent" \
     -H "Content-Type: application/json" -H "@${AUTH_HEADER_FILE}" \
     -d '{"message":"Set our runtime approval policy to REQUIRE_HUMAN_APPROVAL using set_approval_policy."}')" || return 1
   jq -e '.approvalPolicy == "REQUIRE_HUMAN_APPROVAL"' <<<"${resp}" >/dev/null 2>&1 || return 1

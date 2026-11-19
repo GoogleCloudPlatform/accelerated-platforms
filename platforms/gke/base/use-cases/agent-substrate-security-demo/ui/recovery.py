@@ -149,7 +149,7 @@ def api_seed_clean_buddy() -> dict[str, Any]:
                 f"{kube.GATEWAY_URL}/chat/gemini-agent",
                 method="POST",
                 body={"message": seed_msg},
-                timeout=30.0,
+                timeout=95.0,
             )
             if seed_resp.get("error"):
                 raise kube.UpstreamCommandError(
@@ -248,7 +248,7 @@ def api_round2_poison(body: dict[str, Any] | None = None) -> dict[str, Any]:
         f"{kube.GATEWAY_URL}/chat/gemini-agent",
         method="POST",
         body={"message": poison_prompt},
-        timeout=65.0,
+        timeout=95.0,
     )
     if chat_resp.get("error"):
         raise kube.UpstreamCommandError(

@@ -15,19 +15,11 @@
 
 """Split-plane Gateway service for Google ADK actors on Agent Substrate v1.0.0.
 
-Exposes three strictly separated HTTP listeners so untrusted sandboxes hold zero
-Google Cloud credentials, cannot pivot laterally to sibling actors, and reach
-actors exclusively through `atenet-router`'s authenticated mTLS listener:
-- :8080 (0.0.0.0, actor-facing Service port 80, restricted via NetworkPolicy to
-  `atenet-egress` only): authenticates via GKE Workload Identity Application
-  Default Credentials (`google.auth.default`) and proxies Google ADK Gemini
-  model calls plus GET /readyz (upstream error bodies sanitized).
-- :9091 (0.0.0.0, restricted via NetworkPolicy to `gmp-system` only): serves
-  Prometheus telemetry on GET /metrics and GET /readyz.
-- :8081 (127.0.0.1 loopback by default, operator-facing via port-forward
-  authenticated with required `X-Gateway-Admin-Token` / Bearer token):
-  POST /chat/{actor}, GET /actors/{actor}/state, POST /actors/{actor}/execute,
-  GET /actors/{actor}/fetch, GET /identity, GET /readyz, and GET /metrics.
+Exposes three strictly separated HTTP listeners over authenticated router mTLS:
+- :8080 (`atenet-egress` only): Workload Identity proxy for `:generateContent`.
+- :9091 (`gmp-system` only): Prometheus telemetry on GET /metrics and /readyz.
+- :8081 (`127.0.0.1` loopback, `X-Gateway-Admin-Token` required): operator API
+  for /chat/{actor}, /actors/{actor}/{state,execute,fetch}, /identity, /metrics.
 """
 
 import asyncio
@@ -372,14 +364,18 @@ def _forward_gemini(
             headers=headers,
         )
         try:
-            with urllib.request.urlopen(req, timeout=20) as resp:
+            with urllib.request.urlopen(req, timeout=45) as resp:
                 raw_bytes = _read_bounded_stream(resp)
                 data = json.loads(raw_bytes.decode("utf-8"))
                 break
         except urllib.error.HTTPError as exc:
             _ = exc.read(4096)
-            if exc.code in (429, 502, 503, 504) and attempt == 0:
-                time.sleep(1.5)
+            if (
+                exc.code in (429, 502, 503, 504)
+                and attempt == 0
+                and (time.monotonic() - t0) < 10.0
+            ):
+                time.sleep(1.0)
                 continue
             LOGGER.warning("Upstream Vertex AI returned HTTP %s", exc.code)
             status = exc.code if 400 <= exc.code < 600 else 502
@@ -388,7 +384,7 @@ def _forward_gemini(
                 detail=f"Upstream model request failed (HTTP {exc.code})",
             ) from exc
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
-            if attempt == 0:
+            if attempt == 0 and (time.monotonic() - t0) < 10.0:
                 time.sleep(1.0)
                 continue
             LOGGER.warning("Upstream Vertex AI transport failure: %s", exc)
@@ -523,7 +519,7 @@ async def chat_actor(actor: str, request: Request) -> Any:
     body = await read_bounded_model_body(request)
     try:
         status_code, raw_text = await asyncio.to_thread(
-            _call_router, actor, "/chat", "POST", body, 60.0
+            _call_router, actor, "/chat", "POST", body, 90.0
         )
     except HTTPException:
         with METRICS_LOCK:

@@ -134,9 +134,12 @@ AGENT = Agent(
             ),
             "http_options": {
                 "headers": {"Connection": "close"},
-                "timeout": 45000,
+                "timeout": 55000,
             },
         },
+    ),
+    generate_content_config=types.GenerateContentConfig(
+        thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel.LOW)
     ),
     tools=[set_approval_policy, get_approval_policy],
     instruction=(

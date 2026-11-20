@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# cspell:words cafile hmac newurl servicedns
 
 """Split-plane Gateway service for Google ADK actors on Agent Substrate v1.0.0.
 

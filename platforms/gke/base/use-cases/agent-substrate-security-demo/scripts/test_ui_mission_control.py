@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+# cspell:words enoent hmac
 """Regression unit tests for Mission Control UI (`E1`–`E6`, `S1`, `R-5.4`)."""
 
 import errno
@@ -276,6 +276,9 @@ class MissionControlRegressionTest(unittest.TestCase):
         }
         with (
             mock.patch.object(kube, "ensure_port_forwards"),
+            mock.patch.object(
+                kube, "run_cmd", return_value=("dGVzdC1zZWNyZXQ=", "", 0)
+            ),
             mock.patch.object(kube, "http_json", return_value=bad_test_a),
             self.assertRaises(kube.UpstreamCommandError),
         ):
@@ -330,25 +333,19 @@ class MissionControlRegressionTest(unittest.TestCase):
                     "Content-Type": "application/json",
                     "X-Requested-With": "MissionControl",
                 }
-                req_bad = urllib.request.Request(
-                    f"http://127.0.0.1:{port}/api/prometheus",
-                    data=b"{bad",
-                    headers=hdrs,
-                    method="POST",
-                )
-                with self.assertRaises(urllib.error.HTTPError) as ctx_400:
-                    urllib.request.urlopen(req_bad, timeout=5)
-                self.assertEqual(ctx_400.exception.code, 400)
-
-                req_404 = urllib.request.Request(
-                    f"http://127.0.0.1:{port}/api/unknown",
-                    data=b"{}",
-                    headers=hdrs,
-                    method="POST",
-                )
-                with self.assertRaises(urllib.error.HTTPError) as ctx_404:
-                    urllib.request.urlopen(req_404, timeout=5)
-                self.assertEqual(ctx_404.exception.code, 404)
+                for bad_path, body, exp in (
+                    ("/api/prometheus", b"{bad", 400),
+                    ("/api/unknown", b"{}", 404),
+                ):
+                    req = urllib.request.Request(
+                        f"http://127.0.0.1:{port}{bad_path}",
+                        data=body,
+                        headers=hdrs,
+                        method="POST",
+                    )
+                    with self.assertRaises(urllib.error.HTTPError) as ctx_err:
+                        urllib.request.urlopen(req, timeout=5)
+                    self.assertEqual(ctx_err.exception.code, exp)
             finally:
                 srv.shutdown()
                 srv.server_close()

@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# cspell:words eacces ehostunreach enetunreach hmac
 #
 # 4-Act "Red Team vs. Blue Team" CLI Verification Runner for Agent Substrate v1.0.0.
 # Every check executes live against the cluster and enforces strict exit assertions.

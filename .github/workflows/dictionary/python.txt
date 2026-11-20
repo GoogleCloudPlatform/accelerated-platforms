@@ -135,7 +135,6 @@ sqlalchemy
 strftime
 tensorboard
 tensorboardx
-testclient
 thejsonlogger
 tqdm
 unittests

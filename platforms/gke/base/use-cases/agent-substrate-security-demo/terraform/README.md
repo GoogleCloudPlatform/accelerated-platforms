@@ -1,5 +1,7 @@
 # Secure Runtimes for AI Agents on GKE: Agent Substrate Reference Implementation
 
+<!-- cspell:words hmac -->
+
 ## Before you begin
 
 This guide is the reference implementation of the

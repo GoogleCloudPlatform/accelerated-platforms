@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# cspell:words cand
 
 # create-cluster.sh — Standalone GKE 1.37+ cluster creation (Option A) with private
 # worker nodes, Cloud NAT, DNS-only control-plane endpoint (--no-enable-ip-access),

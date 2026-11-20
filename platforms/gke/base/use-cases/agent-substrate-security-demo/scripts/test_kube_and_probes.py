@@ -36,12 +36,13 @@ for p in (str(BASE_DIR / "ui"), str(BASE_DIR / "app"), str(BASE_DIR / "scripts")
         sys.path.insert(0, p)
 
 import acts
-import gateway
 import kube
 import probes
 import server
 import terminal
 import test_app_services
+
+gateway = test_app_services.gateway
 
 
 class _JsonEchoHandler(BaseHTTPRequestHandler):
@@ -347,7 +348,10 @@ class KubeAndProbesCoverageTest(unittest.TestCase):
             server.run_server()
         started_pf.assert_not_called()
 
-        # Gateway proxy_adk_generate_content + _wi_token
+    @unittest.skipUnless(
+        test_app_services._HAS_APP_TEST_DEPS, test_app_services._SKIP_REASON
+    )
+    def test_gateway_proxy_and_wi_token(self) -> None:
         fake_creds = mock.MagicMock()
         fake_creds.valid = False
         fake_creds.expired = True

@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# cspell:words urlsafe
 
 # stage.sh — Stager for the 4-Act Security & Detonation Reference Implementation.
 # Validates GKE >= 1.37, deploys Agent Substrate v1.0.0 (`b34fbee7`) with mTLS ingress,

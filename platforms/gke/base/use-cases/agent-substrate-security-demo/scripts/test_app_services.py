@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# cspell:words hmac iscoroutine testclient
 """Unit tests for `gateway`, `partner_api`, `egress_agent`, and `gemini_agent`."""
 
 import asyncio
@@ -31,9 +32,6 @@ from http.server import ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, cast
 from unittest import mock
-
-from fastapi.routing import APIRoute
-from fastapi.testclient import TestClient
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 APP_DIR = BASE_DIR / "app"
@@ -124,12 +122,30 @@ def _install_adk_stubs() -> None:
     sys.modules["google.genai.types"] = genai_types_mod
 
 
-_install_adk_stubs()
-
-import egress_agent
-import gateway
-import gemini_agent
 import partner_api
+
+_SKIP_REASON = "Requires scripts/requirements-test.txt (fastapi, httpx, google-auth)"
+_HAS_APP_TEST_DEPS = False
+APIRoute: Any = None
+TestClient: Any = None
+egress_agent: Any = None
+gateway: Any = None
+gemini_agent: Any = None
+try:
+    import google.auth.transport.requests  # noqa: F401
+    from fastapi.routing import APIRoute as _APIRoute
+    from fastapi.testclient import TestClient as _TestClient
+
+    _install_adk_stubs()
+    import egress_agent as _egress_agent
+    import gateway as _gateway
+    import gemini_agent as _gemini_agent
+
+    APIRoute, TestClient = _APIRoute, _TestClient
+    egress_agent, gateway, gemini_agent = _egress_agent, _gateway, _gemini_agent
+    _HAS_APP_TEST_DEPS = True
+except ImportError:
+    pass
 
 
 class _StreamingRequest:
@@ -216,6 +232,7 @@ class PartnerApiUnitTest(unittest.TestCase):
                 srv.server_close()
 
 
+@unittest.skipUnless(_HAS_APP_TEST_DEPS, _SKIP_REASON)
 class EgressAgentUnitTest(unittest.TestCase):
     """Tests URL validation, redirect scheme validation, and fetch responses."""
 
@@ -278,6 +295,7 @@ class EgressAgentUnitTest(unittest.TestCase):
             )
 
 
+@unittest.skipUnless(_HAS_APP_TEST_DEPS, _SKIP_REASON)
 class GatewaySecurityUnitTest(unittest.TestCase):
     """Tests Gateway auth, redirect-SSRF defense, streaming caps, and sanitization."""
 
@@ -533,6 +551,7 @@ class GatewaySecurityUnitTest(unittest.TestCase):
         self.assertEqual(ctx_503.exception.status_code, 503)
 
 
+@unittest.skipUnless(_HAS_APP_TEST_DEPS, _SKIP_REASON)
 class GeminiAgentUnitTest(unittest.TestCase):
     """Tests stateful ADK policy persistence, bootID, and MEM_COUNT recovery."""
 

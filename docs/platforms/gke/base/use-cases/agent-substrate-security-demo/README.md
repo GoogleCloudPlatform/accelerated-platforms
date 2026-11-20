@@ -1,5 +1,7 @@
 # Secure Runtimes for AI Agents on GKE: Agent Substrate Security & Detonation Reference Architecture
 
+<!-- cspell:words cmek eacces enoent exfiltration hmac servicedns toctou -->
+
 > [!IMPORTANT]
 >
 > **Secure Runtimes for AI Agents on GKE**: Autonomous LLM agents that execute

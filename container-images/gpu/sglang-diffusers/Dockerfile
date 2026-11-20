@@ -12,9 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM lmsysorg/sglang:v0.5.9-cu129-amd64-runtime
+ARG SGLANG_BASE_IMAGE=lmsysorg/sglang:v0.5.23-cu130-runtime
+FROM ${SGLANG_BASE_IMAGE}
 
-RUN pip install -e "python[diffusion]"
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    rm -rf /var/lib/apt/lists/* && \
+    sed -i 's/"diffusers==0\.37\.0"/"diffusers==0.43.0"/' python/*.toml && \
+    grep -q '"diffusers==0.43.0"' python/*.toml && \
+    SGLANG_BUILD_RUST_EXTS=none pip install --no-cache-dir -e "python[diffusion]" && \
+    pip install --no-cache-dir --upgrade "pillow==13.0.0"
 
 ENTRYPOINT [ "sglang" ]
 

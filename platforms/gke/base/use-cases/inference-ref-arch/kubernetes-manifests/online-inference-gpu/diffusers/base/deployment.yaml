@@ -40,7 +40,11 @@ spec:
             - |
               echo "########### $(date) - Starting parallel-fetch-safetensors for model: ${MODEL_ID}"
               ls -alR /gcs
-              find /gcs/${MODEL_ID}/*safetensors -type f | xargs -I {} -P 15 sh -c 'echo "########### $(date) - Fetching: {}"; dd if={} of=/dev/null'
+              if [ -f "/gcs/${MODEL_ID}/model_index.json" ]; then
+                find "/gcs/${MODEL_ID}" -mindepth 2 -type f -name '*.safetensors'
+              else
+                find "/gcs/${MODEL_ID}" -type f -name '*.safetensors'
+              fi | xargs -I {} -P 15 sh -c 'echo "########### $(date) - Fetching: {}"; dd if="{}" of=/dev/null bs=16M'
               echo "########### $(date) - Finished parallel-fetch-safetensors"
               sleep infinity
           command: ["/bin/sh", "-c"]
@@ -50,8 +54,12 @@ spec:
                 configMapKeyRef:
                   key: MODEL_ID
                   name: runtime
-          image: busybox
+          image: mirror.gcr.io/library/busybox:1.37.0
           name: fetch-safetensors
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
           volumeMounts:
             - mountPath: /gcs
               name: huggingface-hub-model-bucket
@@ -65,7 +73,7 @@ spec:
                   key: GPU_MEMORY_UTILIZATION
                   name: runtime
             - name: LD_LIBRARY_PATH
-              value: ${LD_LIBRARY_PATH}:/usr/local/nvidia/lib64
+              value: /usr/local/cuda/lib64:/usr/local/nvidia/lib:/usr/local/nvidia/lib64
             - name: MODEL_ID
               valueFrom:
                 configMapKeyRef:

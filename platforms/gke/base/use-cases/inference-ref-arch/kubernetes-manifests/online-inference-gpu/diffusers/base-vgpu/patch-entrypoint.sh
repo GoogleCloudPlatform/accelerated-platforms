@@ -22,6 +22,18 @@ path = '/sgl-workspace/sglang/python/sglang/multimodal_gen/runtime/distributed/p
 with open(path, 'r') as f:
     content = f.read()
 
+v23_old_code = '''        extra_args = (
+            dict(device_id=device_id)
+            if current_platform.supports_distributed_device_id()
+            else {}
+        )'''
+
+v23_new_code = '''        extra_args = (
+            dict(device_id=device_id)
+            if (current_platform.supports_distributed_device_id() and world_size > 1)
+            else {}
+        )'''
+
 old_code = '''        extra_args = (
             {}
             if (
@@ -43,13 +55,23 @@ new_code = '''        extra_args = (
             else dict(device_id=device_id)
         )'''
 
-if old_code in content:
-    content = content.replace(old_code, new_code)
+if v23_old_code in content:
+    content = content.replace(v23_old_code, v23_new_code, 1)
     with open(path, 'w') as f:
         f.write(content)
     print('[Patch] Successfully patched parallel_state.py!')
+elif old_code in content:
+    content = content.replace(old_code, new_code, 1)
+    with open(path, 'w') as f:
+        f.write(content)
+    print('[Patch] Successfully patched parallel_state.py!')
+elif v23_new_code in content or new_code in content:
+    print('[Patch] parallel_state.py already patched.')
 else:
-    print('[Patch] Target code not found or already patched.')
+    raise RuntimeError(
+        f'[Patch] Expected init_process_group block not found in {path}; '
+        'verify compatibility with the SGLang base image version.'
+    )
 "
 
 # Execute normal SGLang binary entrypoint with arguments

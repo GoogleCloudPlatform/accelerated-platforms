@@ -27,5 +27,5 @@ steps:
       - --tag=${_DESTINATION}
       - .
     id: "Build Diffusers Flux image"
-    name: "docker.io/docker:28.3.3-dind-alpine3.22"
+    name: "mirror.gcr.io/library/docker:28.3.3-dind-alpine3.22"
     waitFor: ["-"]

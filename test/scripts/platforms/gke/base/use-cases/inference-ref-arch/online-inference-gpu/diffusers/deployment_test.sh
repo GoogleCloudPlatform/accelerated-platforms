@@ -63,22 +63,53 @@ for model in "${hf_gpu_diffusers_models[@]}"; do
       break
     fi
 
-    echo "Sending POST request to '/generate'"
-    echo "----------------------------------------------------------------------------------"
-    curl http://127.0.0.1:${forwarding_port}/generate \
-    --data '{
-      "height": 512,
-      "num_inference_steps": 4,
-      "prompt": "A photo of a dog playing fetch in a park.",
-      "width": 512
-    }' \
-    --header "Content-Type: application/json" \
-    --output ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/images/${HF_MODEL_NAME}_${ACCELERATOR_TYPE}_image.png \
-    --request POST \
-    --show-error \
-    --silent
+    output_png="${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/images/${HF_MODEL_NAME}_${ACCELERATOR_TYPE}_image.png"
+    rm -f "${output_png}"
+
+    if [[ "${HF_MODEL_ID}" == "black-forest-labs/flux.2-klein-4b" ]]; then
+      echo "Sending POST request to '/v1/images/generations' (SGLang backend)"
+      echo "----------------------------------------------------------------------------------"
+      curl http://127.0.0.1:${forwarding_port}/v1/images/generations \
+        --data "{
+          \"model\": \"/gcs/${HF_MODEL_ID}\",
+          \"n\": 1,
+          \"num_inference_steps\": 4,
+          \"output_format\": \"png\",
+          \"prompt\": \"A photo of a dog playing fetch in a park.\",
+          \"response_format\": \"b64_json\",
+          \"size\": \"512x512\"
+        }" \
+        --fail \
+        --header "Content-Type: application/json" \
+        --request POST \
+        --show-error \
+        --silent | jq -r '.data[0].b64_json' | base64 --decode >"${output_png}"
+    else
+      echo "Sending POST request to '/generate' (Diffusers backend)"
+      echo "----------------------------------------------------------------------------------"
+      curl http://127.0.0.1:${forwarding_port}/generate \
+        --data '{
+          "height": 512,
+          "num_inference_steps": 4,
+          "prompt": "A photo of a dog playing fetch in a park.",
+          "width": 512
+        }' \
+        --fail \
+        --header "Content-Type: application/json" \
+        --output "${output_png}" \
+        --request POST \
+        --show-error \
+        --silent
+    fi
     sleep 1
-    ls -alh ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/images/${HF_MODEL_NAME}_${ACCELERATOR_TYPE}_image.png
+    ls -alh "${output_png}"
+    png_magic="$(od -An -tx1 -N8 "${output_png}" | tr -d ' \n')"
+    if [[ "${png_magic}" != "89504e470d0a1a0a" ]]; then
+      echo "[ERROR] Output '${output_png}' is not a valid PNG file (magic=${png_magic})." >&2
+      kill -9 ${PF_PID}
+      wait ${PF_PID} 2>/dev/null
+      exit 1
+    fi
     echo "----------------------------------------------------------------------------------"
     echo
 

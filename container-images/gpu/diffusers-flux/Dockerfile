@@ -1,4 +1,4 @@
-# syntax=docker.io/docker/dockerfile:1.17.1
+# syntax=mirror.gcr.io/docker/dockerfile:1.17.1
 
 # Copyright 2025 Google LLC
 #
@@ -14,8 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Official NVIDIA CUDA base image
-FROM nvcr.io/nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
+# Official NVIDIA CUDA base image (Ubuntu 24.04 provides Python 3.12; CUDA 13.2 aligns with PyTorch 2.15 cu13 runtime)
+FROM nvcr.io/nvidia/cuda:13.2.1-cudnn-runtime-ubuntu24.04
+
+ENV PATH=/opt/venv/bin:${PATH} \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
 # Set up the working directory
 WORKDIR /app
@@ -23,10 +27,14 @@ WORKDIR /app
 # Copy application code
 COPY --from=primary requirements.txt .
 
-# Install Python and dependencies
+# Install Python into an isolated virtual environment and verify runtime imports at build time
 RUN apt-get update && \
-    apt-get install -y python3 python3-pip && \
-    pip install --no-cache-dir -r requirements.txt
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends python3 python3-pip python3-venv && \
+    rm -rf /var/lib/apt/lists/* && \
+    python3 -m venv --upgrade-deps /opt/venv && \
+    pip install --no-cache-dir -r requirements.txt && \
+    python3 -c "import accelerate, diffusers, fastapi, PIL, google.protobuf, sentencepiece, torch, transformers, uvicorn; from diffusers import FluxPipeline"
 
 COPY --from=primary app.py .
 

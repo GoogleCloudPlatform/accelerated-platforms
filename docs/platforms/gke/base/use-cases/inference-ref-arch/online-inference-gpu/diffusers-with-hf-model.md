@@ -25,6 +25,13 @@ This example is built on top of the
    [Hugging Face Hub **Read** access token](/platforms/gke/base/core/huggingface/initialize/README.md)
    has been added to Secret Manager.
 
+   > Note: Even when downloading an ungated model such as `FLUX.2-klein-4B`, the
+   > Secrets Store CSI driver requires an enabled secret version on
+   > `${huggingface_hub_access_token_read_secret_manager_secret_name}`. If you
+   > only plan to download ungated models without a Hugging Face token, add a
+   > single-newline placeholder secret version:
+   > `printf '\n' | gcloud secrets versions add "${huggingface_hub_access_token_read_secret_manager_secret_name}" --project="${huggingface_secret_manager_project_id}" --data-file=-`.
+
 ## Create and configure the Google Cloud resources
 
 1. Deploy the online GPU resources.
@@ -139,19 +146,21 @@ This example is built on top of the
    > source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
    > ```
 
-   > If the `HF_MODEL_NAME` variable is not set, ensure that `HF_MODEL_ID` is
-   > set and source the `set_environment_variables.sh` script:
-   >
-   > ```shell
-   > source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
-   > ```
-
    | Model           | NVIDIA L4 | 2x NVIDIA L4 | 4x NVIDIA L4 | NVIDIA H100 | NVIDIA RTX Pro 6000 | 1/2 NVIDIA RTX Pro 6000 | 1/4 NVIDIA RTX Pro 6000 | 1/8 NVIDIA RTX Pro 6000 |
    | --------------- | --------- | ------------ | ------------ | ----------- | ------------------- | ----------------------- | ----------------------- | ----------------------- |
    | flux.1-schnell  | ✅        | Not tested   | Not tested   | ✅          | Not tested          | Not tested              | Not tested              | Not tested              |
-   | flux.2-klein-4B | ✅        | ✅           | ✅           | Not tested  | ✅                  | ✅                      | ✅                      | ❌                      |
+   | flux.2-klein-4B | ✅        | ✅           | ✅           | Not tested  | ✅                  | ✅ (Standard only)      | ✅ (Standard only)      | ❌                      |
 
-   > When using fractional GPUs (1/2, 1/4, 1/8), you might see a warning in the
+   > Fractional NVIDIA RTX Pro 6000 slices (`1/2` and `1/4`) require a **GKE
+   > Standard** cluster (`deploy-standard.sh`), where `online_gpu` deploys the
+   > GKE `nri-device-injector` DaemonSet to inject `/dev/nvidia-caps/*` devices
+   > specified via `devices.gke.io/container.inference-server` annotations (GKE
+   > Autopilot rejects `devices.gke.io/container` injection via
+   > `autopilot-device-injection-limitation`). The `1/8` (`12 GB`) slice is
+   > unsupported for `flux.2-klein-4B` because `bfloat16` model weights require
+   > ~`15.4 GB` of GPU memory.
+   >
+   > When using fractional GPUs (`1/2`, `1/4`), you might see a warning in the
    > logs of the `inference-server` container:
    > `No CUDA runtime is found, using CUDA_HOME='/usr/local/cuda'`. You can
    > ignore this warning. It's due to the GPU virtualization layer masking
@@ -192,26 +201,20 @@ This example is built on top of the
        export ACCELERATOR_TYPE="rtx-pro-6000"
        ```
 
-     - 1/2x (half) of a **NVIDIA RTX Pro 6000**:
+     - 1/2x (half) of a **NVIDIA RTX Pro 6000** _(GKE Standard only)_:
 
        ```shell
        export ACCELERATOR_TYPE="rtx-pro-6000-1-2"
        ```
 
-     - 1/4x (one fourth) of a **NVIDIA RTX Pro 6000**:
+     - 1/4x (one fourth) of a **NVIDIA RTX Pro 6000** _(GKE Standard only)_:
 
        ```shell
        export ACCELERATOR_TYPE="rtx-pro-6000-1-4"
        ```
 
-     - 1/8x (one eight) of a **NVIDIA RTX Pro 6000**:
-
-       ```shell
-       export ACCELERATOR_TYPE="rtx-pro-6000-1-8"
-       ```
-
    Ensure that you have enough quota in your project to provision the selected
-   accelerator type. For more information, see about viewing GPU quotas, see
+   accelerator type. For more information about viewing GPU quotas, see
    [Allocation quotas: GPU quota](https://cloud.google.com/compute/resource-usage#gpu_quota).
 
 1. Configure the deployment.
@@ -246,27 +249,57 @@ This example is built on top of the
 
 1. Send a test request.
 
-   ```shell
-   kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} port-forward service/diffusers-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} 8000:8000 >/dev/null &
-   PF_PID=$!
-   while ! echo -e '\x1dclose\x0d' | telnet localhost 8000 >/dev/null 2>&1; do
-     sleep 0.1
-   done
-   curl http://localhost:8000/generate \
-   --data '{
-     "height": 512,
-     "num_inference_steps": 4,
-     "prompt": "A photo of a dog playing fetch in a park.",
-     "width": 512
-   }' \
-   --header "Content-Type: application/json" \
-   --output ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/images/${HF_MODEL_NAME}_${ACCELERATOR_TYPE}_image.png \
-   --request POST \
-   --show-error \
-   --silent
-   ls -alh ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/images/${HF_MODEL_NAME}_${ACCELERATOR_TYPE}_image.png
-   kill -9 ${PF_PID}
-   ```
+   - For **FLUX.1-schnell** (`diffusers` backend, `POST /generate`):
+
+     ```shell
+     kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} port-forward service/diffusers-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} 8000:8000 >/dev/null &
+     PF_PID=$!
+     while ! echo -e '\x1dclose\x0d' | telnet localhost 8000 >/dev/null 2>&1; do
+       sleep 0.1
+     done
+     curl http://localhost:8000/generate \
+       --data '{
+         "height": 512,
+         "num_inference_steps": 4,
+         "prompt": "A photo of a dog playing fetch in a park.",
+         "width": 512
+       }' \
+       --fail \
+       --header "Content-Type: application/json" \
+       --output "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/images/${HF_MODEL_NAME}_${ACCELERATOR_TYPE}_image.png" \
+       --request POST \
+       --show-error \
+       --silent
+     ls -alh "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/images/${HF_MODEL_NAME}_${ACCELERATOR_TYPE}_image.png"
+     kill -9 ${PF_PID}
+     ```
+
+   - For **FLUX.2-klein-4B** (`sglang` backend, `POST /v1/images/generations`):
+
+     ```shell
+     kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} port-forward service/diffusers-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} 8000:8000 >/dev/null &
+     PF_PID=$!
+     while ! echo -e '\x1dclose\x0d' | telnet localhost 8000 >/dev/null 2>&1; do
+       sleep 0.1
+     done
+     curl http://localhost:8000/v1/images/generations \
+       --data "{
+         \"model\": \"/gcs/${HF_MODEL_ID}\",
+         \"n\": 1,
+         \"num_inference_steps\": 4,
+         \"output_format\": \"png\",
+         \"prompt\": \"A photo of a dog playing fetch in a park.\",
+         \"response_format\": \"b64_json\",
+         \"size\": \"512x512\"
+       }" \
+       --fail \
+       --header "Content-Type: application/json" \
+       --request POST \
+       --show-error \
+       --silent | jq -r '.data[0].b64_json' | base64 --decode > "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/images/${HF_MODEL_NAME}_${ACCELERATOR_TYPE}_image.png"
+     ls -alh "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/images/${HF_MODEL_NAME}_${ACCELERATOR_TYPE}_image.png"
+     kill -9 ${PF_PID}
+     ```
 
 1. Delete the workload.
 

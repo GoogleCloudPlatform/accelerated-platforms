@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import base64
 import io
 import os
 
@@ -20,7 +19,6 @@ import torch
 from diffusers import FluxPipeline
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
-from PIL import Image
 from pydantic import BaseModel
 
 # The model path is the local path mounted from GCS
@@ -31,7 +29,7 @@ print(f"MODEL_DIR: {MODEL_DIR}")
 try:
     pipeline = FluxPipeline.from_pretrained(
         f"/gcs/{MODEL_DIR}",
-        torch_dtype=torch.float16,
+        dtype=torch.float16,
         local_files_only=True,
         device_map="balanced",
     )

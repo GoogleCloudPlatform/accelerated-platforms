@@ -22,8 +22,12 @@ options:
 steps:
   - args:
       - build
+      - --build-arg=SGLANG_BASE_IMAGE=${_SGLANG_BASE_IMAGE}
       - --tag=${_DESTINATION}
       - .
     id: "Build SGLang-Diffusers image"
-    name: "docker.io/docker:28.3.3-dind-alpine3.22"
+    name: "mirror.gcr.io/library/docker:28.3.3-dind-alpine3.22"
     waitFor: ["-"]
+
+substitutions:
+  _SGLANG_BASE_IMAGE: "lmsysorg/sglang:v0.5.23-cu130-runtime"

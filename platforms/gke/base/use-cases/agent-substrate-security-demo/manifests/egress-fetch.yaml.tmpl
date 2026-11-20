@@ -11,18 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# cspell:words hostnames
 
-terraform {
-  required_version = ">= 1.8.0"
-
-  required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = "7.6.0"
-    }
-  }
-
-  provider_meta "google" {
-    module_name = "cloud-solutions/ate_initialize_deploy-v1"
-  }
-}
+rules:
+  - http:
+      hostnames: ["partner-api.${SECRETS_NAMESPACE}.svc.cluster.local"]
+      effects:
+        replaceHeaders:
+          - header: Authorization
+            prefix: "Bearer "
+            credentialUri: "ate-secret://k8s.io/default/${SECRETS_NAMESPACE}/example-api/token"

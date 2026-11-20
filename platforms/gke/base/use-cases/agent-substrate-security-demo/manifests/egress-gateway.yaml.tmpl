@@ -11,12 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# cspell:words hostnames
 
 rules:
-  - https:
-      hostnames: ["httpbin.org"]
-      effects:
-        replaceHeaders:
-          - header: Authorization
-            prefix: "Bearer "
-            credentialUri: ate-secret://k8s.io/default/workshop-secrets/example-api/token
+  - http:
+      hostnames: ["gateway.${NAMESPACE}.svc.cluster.local"]

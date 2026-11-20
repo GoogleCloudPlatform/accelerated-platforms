@@ -5,6 +5,7 @@ flashinfer
 logits
 matplot
 matplotlib
+mmlu
 ngram
 perc
 percentunit

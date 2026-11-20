@@ -1,0 +1,13 @@
+# Agent skills and agent instruction files need a code owner's approval:
+# coding agents load them as instructions. Branch protection on main enforces
+# this with "Require review from Code Owners".
+# cspell:ignore alizaidis anjum gushob karajendran laurentgrangeau syeda
+/skills/ @syeda-anjum @laurentgrangeau @gushob21 @karajendran @alizaidis
+/AGENTS.md @syeda-anjum @laurentgrangeau @gushob21 @karajendran @alizaidis
+/CLAUDE.md @syeda-anjum @laurentgrangeau @gushob21 @karajendran @alizaidis
+/GEMINI.md @syeda-anjum @laurentgrangeau @gushob21 @karajendran @alizaidis
+/.gemini/ @syeda-anjum @laurentgrangeau @gushob21 @karajendran @alizaidis
+/.claude/ @syeda-anjum @laurentgrangeau @gushob21 @karajendran @alizaidis
+/.cursor/ @syeda-anjum @laurentgrangeau @gushob21 @karajendran @alizaidis
+/.github/copilot-instructions.md @syeda-anjum @laurentgrangeau @gushob21 @karajendran @alizaidis
+/.github/CODEOWNERS @syeda-anjum @laurentgrangeau @gushob21 @karajendran @alizaidis

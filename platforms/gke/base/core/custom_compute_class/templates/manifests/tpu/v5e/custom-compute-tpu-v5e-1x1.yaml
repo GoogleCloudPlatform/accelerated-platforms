@@ -26,7 +26,7 @@ spec:
     enabled: true
   priorities:
     # Use a specific reservation
-    # - machineType: ct5lp-hightpu-4t
+    # - machineType: ct5lp-hightpu-1t
     #   maxPodsPerNode: 32
     #   reservations:
     #     affinity: Specific
@@ -41,7 +41,8 @@ spec:
     #     type: tpu-v5-lite-podslice
 
     # Use on-demand
-    - maxPodsPerNode: 32
+    - machineType: ct5lp-hightpu-1t
+      maxPodsPerNode: 32
       spot: false
       tpu:
         count: 1
@@ -53,6 +54,7 @@ spec:
         enabled: true
         nodeRecycling:
           leadTimeSeconds: 3600
+      machineType: ct5lp-hightpu-1t
       maxPodsPerNode: 32
       maxRunDurationSeconds: 604800
       tpu:
@@ -65,6 +67,7 @@ spec:
         enabled: true
         nodeRecycling:
           leadTimeSeconds: 3600
+      machineType: ct5lp-hightpu-1t
       maxPodsPerNode: 32
       maxRunDurationSeconds: 86400
       tpu:
@@ -73,7 +76,8 @@ spec:
         type: tpu-v5-lite-podslice
 
     # Use spot
-    - maxPodsPerNode: 32
+    - machineType: ct5lp-hightpu-1t
+      maxPodsPerNode: 32
       spot: true
       tpu:
         count: 1

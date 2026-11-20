@@ -124,7 +124,7 @@ This example is built on top of the
     > set and source the `set_environment_variables.sh` script:
     >
     > ```shell
-    > source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"`
+    > source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
     > ```
 
   - Select an accelerator.
@@ -139,7 +139,7 @@ This example is built on top of the
       export ACCELERATOR_TYPE="v5e"
       ```
 
-    - **v56e**:
+    - **v6e**:
 
       ```shell
       export ACCELERATOR_TYPE="v6e"
@@ -158,7 +158,7 @@ This example is built on top of the
 - Deploy the inference workload.
 
   ```shell
-  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/max-diffusion//${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/max-diffusion/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
   ```
 
 - Watch the deployment until it is ready.
@@ -221,7 +221,7 @@ This example is built on top of the
   terraform destroy -auto-approve
   ```
 
-- Destroy the online GPU resources.
+- Destroy the online TPU resources.
 
   ```shell
   export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"

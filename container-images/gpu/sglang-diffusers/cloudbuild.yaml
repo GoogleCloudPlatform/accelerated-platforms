@@ -26,8 +26,8 @@ steps:
       - --tag=${_DESTINATION}
       - .
     id: "Build SGLang-Diffusers image"
-    name: "mirror.gcr.io/library/docker:28.3.3-dind-alpine3.22"
+    name: "mirror.gcr.io/library/docker:28.3.3-dind-alpine3.22@sha256:a56b3bdde89315ed2cc0e4906e582b5033d93bf20d9cb9510c2cdd4e7f7690b1"
     waitFor: ["-"]
 
 substitutions:
-  _SGLANG_BASE_IMAGE: "lmsysorg/sglang:v0.5.23-cu130-runtime"
+  _SGLANG_BASE_IMAGE: "lmsysorg/sglang:v0.5.23-cu130-runtime@sha256:3ce6da3e5ea0fee2dac6a23b528cb294fedd31ca74a55a4511f709c5e01e8652"

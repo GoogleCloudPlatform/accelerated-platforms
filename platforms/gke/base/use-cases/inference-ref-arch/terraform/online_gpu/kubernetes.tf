@@ -80,6 +80,7 @@ module "kubectl_apply_nri_device_injector" {
 
   source = "../../../../modules/kubectl_apply"
 
+  apply_once                  = false
   apply_server_side           = true
   delete_ignore_not_found     = true
   delete_timeout              = "60s"
@@ -87,4 +88,5 @@ module "kubectl_apply_nri_device_injector" {
   kubeconfig_file             = data.local_file.kubeconfig.filename
   manifest                    = "${path.module}/templates/kubernetes/nri-device-injector.yaml"
   manifest_includes_namespace = true
+  source_content_hash         = filesha256("${path.module}/templates/kubernetes/nri-device-injector.yaml")
 }

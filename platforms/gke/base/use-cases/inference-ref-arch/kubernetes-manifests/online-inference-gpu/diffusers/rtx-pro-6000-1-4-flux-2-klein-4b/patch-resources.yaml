@@ -32,9 +32,14 @@ spec:
           resources:
             limits:
               cpu: "6"
-              memory: 38G
+              memory: 36Gi
               nvidia.com/gpu: "1"
             requests:
               cpu: "6"
-              memory: 38G
+              memory: 36Gi
               nvidia.com/gpu: "1"
+      volumes:
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 4Gi
+          name: dev-shm

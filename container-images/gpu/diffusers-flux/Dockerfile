@@ -15,7 +15,7 @@
 # limitations under the License.
 
 # Official NVIDIA CUDA base image (Ubuntu 24.04 provides Python 3.12; CUDA 13.2 aligns with PyTorch 2.15 cu13 runtime)
-FROM nvcr.io/nvidia/cuda:13.2.1-cudnn-runtime-ubuntu24.04
+FROM nvcr.io/nvidia/cuda:13.2.1-cudnn-runtime-ubuntu24.04@sha256:1c0c68dbf3258d32b446a02cb4be05c8478b65d320d7856ad33c4bbdf898ca86
 
 ENV PATH=/opt/venv/bin:${PATH} \
     PYTHONDONTWRITEBYTECODE=1 \

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG SGLANG_BASE_IMAGE=lmsysorg/sglang:v0.5.23-cu130-runtime
+ARG SGLANG_BASE_IMAGE=lmsysorg/sglang:v0.5.23-cu130-runtime@sha256:3ce6da3e5ea0fee2dac6a23b528cb294fedd31ca74a55a4511f709c5e01e8652
 FROM ${SGLANG_BASE_IMAGE}
 
 RUN apt-get update && \
@@ -21,7 +21,8 @@ RUN apt-get update && \
     sed -i 's/"diffusers==0\.37\.0"/"diffusers==0.43.0"/' python/*.toml && \
     grep -q '"diffusers==0.43.0"' python/*.toml && \
     SGLANG_BUILD_RUST_EXTS=none pip install --no-cache-dir -e "python[diffusion]" && \
-    pip install --no-cache-dir --upgrade "pillow==13.0.0"
+    pip install --no-cache-dir --upgrade "pillow==13.0.0" && \
+    python3 -c "import importlib, sglang, diffusers, PIL; importlib.import_module('sglang.multimodal_gen.runtime.pipelines.flux_2_klein')"
 
 ENTRYPOINT [ "sglang" ]
 

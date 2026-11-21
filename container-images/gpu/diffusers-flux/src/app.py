@@ -23,6 +23,11 @@ from pydantic import BaseModel
 
 # The model path is the local path mounted from GCS
 MODEL_DIR = os.environ.get("MODEL_ID")
+if not MODEL_DIR:
+    raise RuntimeError(
+        "MODEL_ID environment variable is required (for example, "
+        "'black-forest-labs/flux.1-schnell')."
+    )
 print(f"MODEL_DIR: {MODEL_DIR}")
 
 # Load the pipeline from the local GCS mount with local_files_only=True
@@ -36,7 +41,7 @@ try:
 
 except Exception as e:
     print(f"Error loading pipeline: {e}")
-    raise e
+    raise
 
 
 class InferenceRequest(BaseModel):

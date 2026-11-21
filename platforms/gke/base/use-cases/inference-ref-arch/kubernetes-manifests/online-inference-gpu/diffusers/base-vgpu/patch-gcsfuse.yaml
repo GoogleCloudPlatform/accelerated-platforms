@@ -29,6 +29,10 @@ spec:
   template:
     spec:
       volumes:
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 1Gi
+          name: gke-gcsfuse-cache
         - name: huggingface-hub-model-bucket
           csi:
             driver: gcsfuse.csi.storage.gke.io

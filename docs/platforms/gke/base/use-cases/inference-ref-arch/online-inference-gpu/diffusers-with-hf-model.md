@@ -38,12 +38,10 @@ This example is built on top of the
 
    ```shell
    export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
-   cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu && \
-   rm -rf .terraform/ terraform.tfstate* && \
-   terraform init && \
-   terraform plan -input=false -out=tfplan && \
-   terraform apply -input=false tfplan && \
-   rm tfplan
+   terraform -chdir="${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu" init && \
+   terraform -chdir="${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu" plan -input=false -out=tfplan && \
+   terraform -chdir="${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu" apply -input=false tfplan && \
+   rm "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu/tfplan"
    ```
 
 ## Download the model to Cloud Storage
@@ -112,15 +110,15 @@ This example is built on top of the
    source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
    ```
 
-1. Build the container image for the Diffusers inference server.
+1. Build the container images (`diffusers-flux` for `FLUX.1-schnell` and
+   `sglang-diffusers` for `FLUX.2-klein-4B`).
 
    ```shell
    export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
-   rm -rf ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/gpu/diffusers_flux/.terraform/ terraform.tfstate* && \
-   terraform -chdir=${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/gpu/diffusers_flux init && \
-   terraform -chdir=${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/gpu/diffusers_flux plan -input=false -out=tfplan && \
-   terraform -chdir=${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/gpu/diffusers_flux apply -input=false tfplan && \
-   rm ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/gpu/diffusers_flux/tfplan
+   terraform -chdir="${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/gpu/diffusers_flux" init && \
+   terraform -chdir="${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/gpu/diffusers_flux" plan -input=false -out=tfplan && \
+   terraform -chdir="${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/gpu/diffusers_flux" apply -input=false tfplan && \
+   rm "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/gpu/diffusers_flux/tfplan"
    ```
 
    The build usually takes about 25 minutes.
@@ -252,12 +250,13 @@ This example is built on top of the
    - For **FLUX.1-schnell** (`diffusers` backend, `POST /generate`):
 
      ```shell
-     kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} port-forward service/diffusers-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} 8000:8000 >/dev/null &
+     kubectl --namespace="${ira_online_gpu_kubernetes_namespace_name}" port-forward --address 127.0.0.1 "service/diffusers-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}" 8000:8000 >/dev/null &
      PF_PID=$!
-     while ! echo -e '\x1dclose\x0d' | telnet localhost 8000 >/dev/null 2>&1; do
-       sleep 0.1
+     until curl --fail --silent http://127.0.0.1:8000/health >/dev/null; do
+       kill -0 "${PF_PID}" 2>/dev/null || break
+       sleep 0.5
      done
-     curl http://localhost:8000/generate \
+     curl http://127.0.0.1:8000/generate \
        --data '{
          "height": 512,
          "num_inference_steps": 4,
@@ -271,34 +270,38 @@ This example is built on top of the
        --show-error \
        --silent
      ls -alh "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/images/${HF_MODEL_NAME}_${ACCELERATOR_TYPE}_image.png"
-     kill -9 ${PF_PID}
+     kill -9 "${PF_PID}" 2>/dev/null || true
      ```
 
    - For **FLUX.2-klein-4B** (`sglang` backend, `POST /v1/images/generations`):
 
      ```shell
-     kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} port-forward service/diffusers-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} 8000:8000 >/dev/null &
+     kubectl --namespace="${ira_online_gpu_kubernetes_namespace_name}" port-forward --address 127.0.0.1 "service/diffusers-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}" 8000:8000 >/dev/null &
      PF_PID=$!
-     while ! echo -e '\x1dclose\x0d' | telnet localhost 8000 >/dev/null 2>&1; do
-       sleep 0.1
+     until curl --fail --silent http://127.0.0.1:8000/health >/dev/null; do
+       kill -0 "${PF_PID}" 2>/dev/null || break
+       sleep 0.5
      done
-     curl http://localhost:8000/v1/images/generations \
-       --data "{
-         \"model\": \"/gcs/${HF_MODEL_ID}\",
-         \"n\": 1,
-         \"num_inference_steps\": 4,
-         \"output_format\": \"png\",
-         \"prompt\": \"A photo of a dog playing fetch in a park.\",
-         \"response_format\": \"b64_json\",
-         \"size\": \"512x512\"
-       }" \
-       --fail \
-       --header "Content-Type: application/json" \
-       --request POST \
-       --show-error \
-       --silent | jq -r '.data[0].b64_json' | base64 --decode > "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/images/${HF_MODEL_NAME}_${ACCELERATOR_TYPE}_image.png"
+     response="$(
+       curl http://127.0.0.1:8000/v1/images/generations \
+         --data "{
+           \"model\": \"/gcs/${HF_MODEL_ID}\",
+           \"n\": 1,
+           \"num_inference_steps\": 4,
+           \"output_format\": \"png\",
+           \"prompt\": \"A photo of a dog playing fetch in a park.\",
+           \"response_format\": \"b64_json\",
+           \"size\": \"512x512\"
+         }" \
+         --fail \
+         --header "Content-Type: application/json" \
+         --request POST \
+         --show-error \
+         --silent
+     )"
+     printf '%s' "${response}" | jq -er '.data[0].b64_json' | base64 --decode > "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/images/${HF_MODEL_NAME}_${ACCELERATOR_TYPE}_image.png"
      ls -alh "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/images/${HF_MODEL_NAME}_${ACCELERATOR_TYPE}_image.png"
-     kill -9 ${PF_PID}
+     kill -9 "${PF_PID}" 2>/dev/null || true
      ```
 
 1. Delete the workload.
@@ -309,22 +312,18 @@ This example is built on top of the
 
 ## Clean up
 
-1. Destroy the container image.
+1. Destroy the container images.
 
    ```shell
    export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
-   cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/gpu/diffusers_flux && \
-   rm -rf .terraform/ terraform.tfstate* && \
-   terraform init &&
-   terraform destroy -auto-approve
+   terraform -chdir="${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/gpu/diffusers_flux" init && \
+   terraform -chdir="${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/gpu/diffusers_flux" destroy -auto-approve
    ```
 
 1. Destroy the online GPU resources.
 
    ```shell
    export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
-   cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu && \
-   rm -rf .terraform/ terraform.tfstate* && \
-   terraform init &&
-   terraform destroy -auto-approve
+   terraform -chdir="${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu" init && \
+   terraform -chdir="${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu" destroy -auto-approve
    ```

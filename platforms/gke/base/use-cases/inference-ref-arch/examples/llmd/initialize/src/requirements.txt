@@ -13,5 +13,5 @@
 # limitations under the License.
 gradio==6.2.0
 httpx==0.28.1
-requests==2.32.5
+requests==2.33.0
 thejsonlogger==0.0.3

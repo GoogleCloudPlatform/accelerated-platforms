@@ -1,0 +1,330 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+version: 2
+
+
+
+multi-ecosystem-groups:
+  platform:
+    schedule:
+      interval: "weekly"
+    labels: ["platform", "dependencies"]
+    target-branch: "fix-configure-dependabot"
+
+  federated-learning:
+    schedule:
+      interval: "weekly"
+    labels: ["federated-learning", "dependencies"]
+    target-branch: "fix-configure-dependabot"
+
+  inference:
+    schedule:
+      interval: "weekly"
+    labels: ["inference", "dependencies"]
+    target-branch: "fix-configure-dependabot"
+
+  training:
+    schedule:
+      interval: "weekly"
+    labels: ["training", "dependencies"]
+    target-branch: "fix-configure-dependabot"
+
+  comfyui-workflows:
+    schedule:
+      interval: "weekly"
+    labels: ["comfyui", "workflows", "dependencies"]
+    target-branch: "fix-configure-dependabot"
+
+  devcontainer:
+    schedule:
+      interval: "weekly"
+    labels: ["devcontainer", "dependencies"]
+    target-branch: "fix-configure-dependabot"
+
+updates:
+  # =========================================================================
+  # 1. PLATFORM LEVEL
+  # =========================================================================
+
+  # --- GitHub Actions (Platform) ---
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    patterns: ["*"]
+    multi-ecosystem-group: "platform"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
+
+  # --- Terraform (Platform) ---
+  - package-ecosystem: "terraform"
+    directories:
+      - "platforms/cws/**"
+      - "platforms/gke/base/core/**"
+      - "platforms/gke/base/features/**"
+      - "platforms/gke/base/modules/**"
+      - "platforms/gke-aiml/playground/**"
+      - "platforms/gke/base/_shared_config/**"
+      - "terraform/**"
+      - "test/ci-cd/terraform/**"
+    patterns: ["*"]
+    multi-ecosystem-group: "platform"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
+
+  # --- Pip (Platform) ---
+  - package-ecosystem: "pip"
+    directories:
+      - "/"
+    patterns: ["*"]
+    multi-ecosystem-group: "platform"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
+
+  # --- Docker (Platform) ---
+  - package-ecosystem: "docker"
+    directories:
+      - "platforms/cws/image_pipeline/**"
+      - "test/ci-cd/**"
+    patterns: ["*"]
+    multi-ecosystem-group: "platform"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
+
+
+  # =========================================================================
+  # 2. USE CASE: FEDERATED LEARNING
+  # =========================================================================
+
+  # --- Terraform (Federated Learning) ---
+  - package-ecosystem: "terraform"
+    directories:
+      - "platforms/gke/base/use-cases/federated-learning/terraform/**"
+    patterns: ["*"]
+    multi-ecosystem-group: "federated-learning"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
+
+  # --- Pip (Federated Learning) ---
+  - package-ecosystem: "pip"
+    directories:
+      - "platforms/gke/base/use-cases/federated-learning/**"
+    patterns: ["*"]
+    multi-ecosystem-group: "federated-learning"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
+
+  # --- Docker (Federated Learning) ---
+  - package-ecosystem: "docker"
+    directories:
+      - "platforms/gke/base/use-cases/federated-learning/**"
+    patterns: ["*"]
+    multi-ecosystem-group: "federated-learning"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
+
+
+  # =========================================================================
+  # 3. USE CASE: INFERENCE
+  # =========================================================================
+
+  # --- Terraform (Inference) ---
+  - package-ecosystem: "terraform"
+    directories:
+      - "platforms/gke/base/use-cases/inference-ref-arch/terraform/**"
+      - "platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/**"
+    patterns: ["*"]
+    multi-ecosystem-group: "inference"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
+
+  # --- Pip (Inference) ---
+  - package-ecosystem: "pip"
+    directories:
+      - "platforms/gke/base/use-cases/inference-ref-arch/**"
+      - "use-cases/inferencing/**"
+      - "use-cases/rag-pipeline/**"
+      - "container-images/cpu/async-load-generator/**"
+      - "container-images/cpu/async-pubsub-subscriber/**"
+      - "container-images/cpu/offline-batch-dataset-downloader/**"
+      - "container-images/cpu/offline-batch-worker/**"
+      - "container-images/cpu/k6-benchmark/**"
+      - "container-images/gpu/diffusers-flux/**"
+      - "container-images/tpu/max-diffusion-sdxl/**"
+    patterns: ["*"]
+    multi-ecosystem-group: "inference"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
+
+  # --- Docker (Inference) ---
+  - package-ecosystem: "docker"
+    directories:
+      - "container-images/cpu/async-load-generator/**"
+      - "container-images/cpu/async-pubsub-subscriber/**"
+      - "container-images/cpu/offline-batch-dataset-downloader/**"
+      - "container-images/cpu/offline-batch-worker/**"
+      - "container-images/cpu/k6-benchmark/**"
+      - "container-images/gpu/diffusers-flux/**"
+      - "container-images/gpu/sglang-diffusers/**"
+      - "container-images/tpu/max-diffusion-sdxl/**"
+      - "platforms/gke/base/use-cases/inference-ref-arch/**"
+      - "use-cases/inferencing/**"
+      - "use-cases/rag-pipeline/**"
+    patterns: ["*"]
+    multi-ecosystem-group: "inference"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
+
+
+  # =========================================================================
+  # 4. USE CASE: TRAINING
+  # =========================================================================
+
+  # --- Terraform (Training) ---
+  - package-ecosystem: "terraform"
+    directories:
+      - "platforms/gke/base/use-cases/training-ref-arch/**"
+      - "platforms/gke/base/use-cases/reinforcement-learning/terraform/**"
+    patterns: ["*"]
+    multi-ecosystem-group: "training"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
+
+  # --- Pip (Training) ---
+  - package-ecosystem: "pip"
+    directories:
+      - "use-cases/model-fine-tuning-pipeline/**"
+      - "container-images/cpu/mft-data-preparation/**"
+      - "container-images/cpu/mft-data-processing/**"
+      - "container-images/cpu/mft-fine-tuning/**"
+      - "container-images/cpu/mft-model-evaluation/**"
+    patterns: ["*"]
+    multi-ecosystem-group: "training"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
+
+  # --- Docker (Training) ---
+  - package-ecosystem: "docker"
+    directories:
+      - "container-images/cpu/mft-data-preparation/**"
+      - "container-images/cpu/mft-data-processing/**"
+      - "container-images/cpu/mft-fine-tuning/**"
+      - "container-images/cpu/mft-model-evaluation/**"
+      - "container-images/tpu/rl-tpu-maxtext-grpo-single-host/**"
+      - "use-cases/model-fine-tuning-pipeline/**"
+    patterns: ["*"]
+    multi-ecosystem-group: "training"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
+
+
+  # =========================================================================
+  # 5. USE CASE: COMFYUI & WORKFLOWS
+  # =========================================================================
+
+  # --- Go (Workflow API) ---
+  - package-ecosystem: "gomod"
+    directories:
+      - "projects/workflow-api/**"
+    patterns: ["*"]
+    multi-ecosystem-group: "comfyui-workflows"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
+
+  # --- Pip (ComfyUI Custom Nodes) ---
+  - package-ecosystem: "pip"
+    directories:
+      - "modules/python/src/custom_nodes/google_genmedia/**"
+    patterns: ["*"]
+    multi-ecosystem-group: "comfyui-workflows"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
+
+  # --- Docker (ComfyUI / Workflow API) ---
+  - package-ecosystem: "docker"
+    directories:
+      - "projects/workflow-api/**"
+    patterns: ["*"]
+    multi-ecosystem-group: "comfyui-workflows"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
+
+
+  # =========================================================================
+  # 6. DEVCONTAINER
+  # =========================================================================
+
+  # --- Docker (Devcontainer) ---
+  - package-ecosystem: "docker"
+    directories:
+      - ".devcontainer/**"
+    patterns: ["*"]
+    multi-ecosystem-group: "devcontainer"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
+
+  # --- NPM (Devcontainer) ---
+  - package-ecosystem: "npm"
+    directories:
+      - ".devcontainer/dependencies/**"
+    patterns: ["*"]
+    multi-ecosystem-group: "devcontainer"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
+
+  # --- Pip (Devcontainer) ---
+  - package-ecosystem: "pip"
+    directories:
+      - ".devcontainer/dependencies/**"
+    patterns: ["*"]
+    multi-ecosystem-group: "devcontainer"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]

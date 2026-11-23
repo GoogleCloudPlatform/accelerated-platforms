@@ -41,7 +41,8 @@ spec:
     #     type: tpu-v5-lite-podslice
 
     # Use on-demand
-    - maxPodsPerNode: 32
+    - machineType: ct5lp-hightpu-8t
+      maxPodsPerNode: 32
       spot: false
       tpu:
         count: 8
@@ -53,6 +54,7 @@ spec:
         enabled: true
         nodeRecycling:
           leadTimeSeconds: 3600
+      machineType: ct5lp-hightpu-8t
       maxPodsPerNode: 32
       maxRunDurationSeconds: 604800
       tpu:
@@ -60,11 +62,12 @@ spec:
         topology: 2x4
         type: tpu-v5-lite-podslice
 
-    # Use DWS FlexStart with 7 day limit
+    # Use DWS FlexStart with 1 day limit
     - flexStart:
         enabled: true
         nodeRecycling:
           leadTimeSeconds: 3600
+      machineType: ct5lp-hightpu-8t
       maxPodsPerNode: 32
       maxRunDurationSeconds: 86400
       tpu:
@@ -73,7 +76,8 @@ spec:
         type: tpu-v5-lite-podslice
 
     # Use spot
-    - maxPodsPerNode: 32
+    - machineType: ct5lp-hightpu-8t
+      maxPodsPerNode: 32
       spot: true
       tpu:
         count: 8

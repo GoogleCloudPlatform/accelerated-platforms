@@ -1,0 +1,67 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Scales the model servers of one arm in one region on the average number of
+# requests waiting in the vLLM scheduler queue per pod (scale-out trigger) and
+# running per pod (holds replicas while they're busy), from GKE automatic
+# application monitoring through the Custom Metrics Stackdriver Adapter.
+# Rendered by scripts/deploy-arm.sh when MR_HPA_ENABLED=true.
+#
+# Scale-up is immediate (no stabilization window, up to doubling every 15 s),
+# because a new GPU replica takes minutes to become ready. Scale-down waits 5
+# minutes, and removes at most one replica per minute, so that a short dip
+# doesn't throw away a warm prefix cache.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ${MR_HPA_DEPLOYMENT}
+  namespace: ${MR_NAMESPACE}
+  labels:
+    acp-mr/arm: ${MR_HPA_ARM}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ${MR_HPA_DEPLOYMENT}
+  minReplicas: ${MR_REPLICAS_PER_REGION}
+  maxReplicas: ${MR_HPA_MAX_REPLICAS}
+  metrics:
+    - type: Pods
+      pods:
+        metric:
+          name: ${MR_HPA_METRIC}
+        target:
+          type: AverageValue
+          averageValue: "${MR_HPA_TARGET_AVERAGE}"
+    # Holds the replicas while they're busy (see MR_HPA_TARGET_RUNNING).
+    - type: Pods
+      pods:
+        metric:
+          name: ${MR_HPA_RUNNING_METRIC}
+        target:
+          type: AverageValue
+          averageValue: "${MR_HPA_TARGET_RUNNING}"
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 60

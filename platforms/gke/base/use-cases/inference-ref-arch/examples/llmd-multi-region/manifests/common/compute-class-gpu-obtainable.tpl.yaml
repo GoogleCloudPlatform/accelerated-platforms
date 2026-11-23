@@ -1,0 +1,57 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# GPU compute class for regions without on-demand quota for the accelerator
+# (selected per region with MR_COMPUTE_CLASS_REGION in mr.env). The platform's
+# default GPU class tries on-demand first; with no on-demand quota, every new
+# node then waits for the on-demand priorities to fail with QuotaExceeded and
+# back off (5 minutes each) before it reaches flex-start or Spot. This class
+# starts with the capacity that uses preemptible quota:
+#   1. flex-start (Dynamic Workload Scheduler): not preempted during its
+#      maximum run duration
+#   2. Spot: can be preempted at any time; the HPA and the Deployment replace
+#      a preempted replica
+#   3. on-demand, for when on-demand quota is granted later
+apiVersion: cloud.google.com/v1
+kind: ComputeClass
+metadata:
+  name: ${MR_NAMESPACE}-gpu-obtainable
+spec:
+  nodePoolAutoCreation:
+    enabled: true
+  nodePoolConfig:
+    imageStreaming:
+      enabled: true
+  priorities:
+    - flexStart:
+        enabled: true
+      gpu:
+        count: ${MR_GPU_COUNT}
+        driverVersion: latest
+        type: nvidia-${MR_ACCELERATOR_TYPE}
+      machineType: ${MR_GPU_MACHINE_TYPE}
+      maxRunDurationSeconds: 604800
+    - gpu:
+        count: ${MR_GPU_COUNT}
+        driverVersion: latest
+        type: nvidia-${MR_ACCELERATOR_TYPE}
+      machineType: ${MR_GPU_MACHINE_TYPE}
+      spot: true
+    - gpu:
+        count: ${MR_GPU_COUNT}
+        driverVersion: latest
+        type: nvidia-${MR_ACCELERATOR_TYPE}
+      machineType: ${MR_GPU_MACHINE_TYPE}
+      spot: false
+  whenUnsatisfiable: DoNotScaleUp

@@ -1,0 +1,43 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+# Arm B: llm-d. The pods are selected by the llm-d router InferencePools
+# (precise-prefix-cache-routing and optimized-baseline), which are exported to
+# the fleet and load balanced by the multi-cluster Inference Gateway. Each
+# region's endpoint picker (EPP) then picks the pod.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: ${MR_NAMESPACE}
+
+resources:
+  - ../base
+
+components:
+  - ../components/llmd-arm
+
+patches:
+  # Publishes KV cache block events to the router (precise prefix cache index).
+  # The topic model name must match the served name.
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: "--kv-events-config"
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: '{"enable_kv_cache_events":true,"publisher":"zmq","endpoint":"$(KV_EVENTS_ENDPOINT)","replay_endpoint":"$(KV_EVENTS_REPLAY_ENDPOINT)","topic":"kv@$(POD_IP):$(POD_PORT)@${MR_SERVED_MODEL_NAME}"}'

@@ -17,11 +17,11 @@
 # (runsc) Actor with a mode=0777 durableDir (/data) and Kubernetes 1.37
 # ClusterTrustBundle mounted at /run/ate/trust-bundle.pem.
 metadata:
-  atespace: ${ATESPACE}
+  atespace: "${ATESPACE}"
   name: python-sandbox-v1
 workerSelector:
   matchLabels:
-    workload: workshop-agent
+    workload: substrate-agent
 containers:
 - name: sandbox
   image: registry.k8s.io/agent-sandbox/python-runtime-sandbox:v0.5.6@sha256:147a6a7f3b382683a065e4519b22088e75472317ce861d57031537a758836ab5
@@ -39,8 +39,10 @@ containers:
     value: "80"
   - name: SSL_CERT_FILE
     value: /run/ate/trust-bundle.pem
+  - name: REQUESTS_CA_BUNDLE
+    value: /run/ate/trust-bundle.pem
   - name: SSL_CERT_DIR
-    value: /run/ate
+    value: /dev/null
   wakeupProbe:
     httpGet:
       path: /

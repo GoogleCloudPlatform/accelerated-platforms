@@ -1,0 +1,59 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Placeholder pods that keep the GPU nodes of one arm while the arms are
+# switched (scripts/delete-arm.sh --hold-gpus). The cluster autoscaler removes
+# empty GPU nodes within about a minute, and getting them back can fail when
+# the accelerator is stocked out. scripts/deploy-arm.sh deletes this Deployment
+# right before it applies the next arm's model servers, which then land on the
+# held nodes.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu-hold
+  namespace: ${MR_NAMESPACE}
+  labels:
+    app: gpu-hold
+spec:
+  replicas: ${MR_REPLICAS_PER_REGION}
+  selector:
+    matchLabels:
+      app: gpu-hold
+  template:
+    metadata:
+      labels:
+        app: gpu-hold
+    spec:
+      nodeSelector:
+        cloud.google.com/compute-class: ${MR_COMPUTE_CLASS}
+      terminationGracePeriodSeconds: 0
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65535
+      containers:
+        - name: pause
+          image: ${MR_GPU_HOLD_IMAGE}
+          resources:
+            requests:
+              cpu: 100m
+              memory: 32Mi
+              nvidia.com/gpu: "${MR_GPU_COUNT}"
+            limits:
+              memory: 32Mi
+              nvidia.com/gpu: "${MR_GPU_COUNT}"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]

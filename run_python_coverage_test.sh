@@ -30,4 +30,4 @@ done
 
 python -m coverage run --append -m unittest discover -s test/ci-cd/scripts/platforms/gke/base/use-cases/inference-ref-arch
 python -m coverage run --append -m unittest discover -s platforms/gke/base/use-cases/agent-substrate-security-demo/scripts
-
+python -m coverage run --append -m unittest discover -s platforms/gke/base/use-cases/inference-ref-arch/examples/llmd-multi-region/bench

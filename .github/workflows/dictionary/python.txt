@@ -3,6 +3,7 @@ aiohttp
 aqtp
 asctime
 asgi
+astimezone
 asynccontextmanager
 asyncio
 bfloat
@@ -14,6 +15,8 @@ commonpath
 configparser
 contextlib
 conv
+copyfile
+copytree
 coveragerc
 ctypes
 dataclass
@@ -27,6 +30,7 @@ devel
 dropna
 einops
 endswith
+execvp
 fastapi
 fillna
 fromarray
@@ -46,6 +50,7 @@ getnchannels
 getnframes
 getpid
 getsampwidth
+gmtime
 grpcio
 gunicorn
 hasattr
@@ -60,6 +65,7 @@ inplace
 ipynb
 isfile
 isin
+isinf
 isinstance
 isna
 isoformat
@@ -113,6 +119,7 @@ reqs
 rerank
 reranked
 retryable
+rglob
 rsplit
 rstrip
 runpy

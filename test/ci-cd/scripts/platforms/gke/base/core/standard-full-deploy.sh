@@ -50,6 +50,7 @@ declare -a CORE_TERRASERVICES_APPLY_ARRAY=(
   "workloads/kueue"
   "workloads/lws"
   "workloads/agent_sandbox"
+  "workloads/agent_substrate"
   "workloads/priority_class"
   "workloads/pathways"
 )

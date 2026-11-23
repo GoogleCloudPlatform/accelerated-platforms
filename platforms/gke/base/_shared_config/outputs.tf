@@ -12,6 +12,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+output "ate_bucket_name" {
+  value = local.ate_bucket_name
+}
+
+output "ate_bucket_project_id" {
+  value = local.ate_bucket_project_id
+}
+
+output "ate_cloudsql_instance_name" {
+  value = local.ate_cloudsql_instance_name
+}
+
+output "ate_cloudsql_project_id" {
+  value = local.ate_cloudsql_project_id
+}
+
+output "ate_kubernetes_namespace" {
+  value = var.ate_kubernetes_namespace
+}
+
+output "ate_service_account_email" {
+  value = local.ate_service_account_email
+}
+
+output "ate_service_account_project_id" {
+  value = local.ate_service_account_project_id
+}
+
 output "cloudbuild_ar_image_repository_url" {
   value = local.cloudbuild_ar_image_repository_url
 }

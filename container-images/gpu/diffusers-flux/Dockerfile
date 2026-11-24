@@ -30,7 +30,7 @@ COPY --from=primary requirements.txt .
 # Install Python into an isolated virtual environment and verify runtime imports at build time
 RUN apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y --no-install-recommends python3 python3-pip python3-venv && \
+    apt-get install -y --no-install-recommends python3 python3-venv && \
     rm -rf /var/lib/apt/lists/* && \
     python3 -m venv --upgrade-deps /opt/venv && \
     pip install --no-cache-dir -r requirements.txt && \

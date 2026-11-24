@@ -212,9 +212,12 @@ output of `kubectl kustomize`.
 - **Known exceptions on `main`**: all ten TPU `llmd-<guide>` overlays (11 patch
   files under `kubernetes-manifests/online-inference-tpu/llmd-*/vllm/`, since
   #588) install `runai-model-streamer[gcs]==0.17.1` at startup because
-  `docker.io/vllm/vllm-torchtpu:v0.29.0` doesn't bundle it, and two Job scripts
-  also install packages at start. Don't copy that pattern into new overlays;
-  remove these shims once the production image bundles the dependency.
+  `docker.io/vllm/vllm-torchtpu:v0.29.0` doesn't bundle it. Two Job scripts also
+  install packages at start: `model-download/huggingface/configmap-scripts.yaml`
+  (`pip3 install`) and
+  `online-inference-gpu/vllm-auto-tuning/base/configmap-scripts.yaml`
+  (`apt-get install`). Don't copy that pattern into new overlays; remove these
+  shims once the production image bundles the dependency.
 
 ---
 

@@ -25,7 +25,12 @@ FROM ${SGLANG_BASE_IMAGE}
 #   and those releases have known advisories; pillow 13.0.0 is installed
 #   afterwards, so `pip check` reports the moviepy constraint. moviepy is only
 #   used to export videos.
-RUN apt-get update && \
+#
+# The NVIDIA apt source is removed first, so `apt-get upgrade` patches Ubuntu
+# packages only and the CUDA libraries stay at the versions of the pinned base
+# image.
+RUN rm /etc/apt/sources.list.d/cuda-*.list && \
+    apt-get update && \
     apt-get upgrade -y && \
     rm -rf /var/lib/apt/lists/* && \
     sed -i 's/"diffusers==0\.37\.0"/"diffusers==0.43.0"/' python/*.toml && \

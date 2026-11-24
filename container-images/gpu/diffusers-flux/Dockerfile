@@ -27,8 +27,11 @@ WORKDIR /app
 # Copy application code
 COPY --from=primary requirements.txt .
 
-# Install Python into an isolated virtual environment and verify runtime imports at build time
-RUN apt-get update && \
+# Install Python into an isolated virtual environment and verify runtime imports at build time.
+# The NVIDIA apt source is removed first, so `apt-get upgrade` patches Ubuntu
+# packages only and the CUDA libraries stay at the versions of the pinned base image.
+RUN rm /etc/apt/sources.list.d/cuda-*.list && \
+    apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y --no-install-recommends python3 python3-venv && \
     rm -rf /var/lib/apt/lists/* && \

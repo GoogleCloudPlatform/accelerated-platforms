@@ -79,6 +79,9 @@ def data_prep():
     ray_runtime_env = {
         # Ship the local module to the Ray workers
         "py_modules": ["./datapreparation"],
+        # The Ray cluster image doesn't contain these packages, so the Ray workers
+        # install them when the job starts, as for the data processing. Remove the
+        # list when the Ray cluster runs an image that contains the packages.
         # pyarrow is the lowest version that datasets accepts. The driver of the
         # job runs with pyarrow 23.0.1 of the Ray cluster image, and the tasks
         # can't read what the driver sends them when their version differs more.

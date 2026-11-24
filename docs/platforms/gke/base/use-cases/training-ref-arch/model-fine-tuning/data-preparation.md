@@ -49,11 +49,13 @@ The data preparation job submits a Ray job that runs a python script named
   times with the same name and different specifications, for example once for
   each color, and a question only names the product. The listing with the most
   attributes is kept.
-- Generates six questions and answers for each product. One question is about
-  the product as a whole, the other questions are about attributes from the
-  product specifications, for example the fabric, the pattern or the occasion.
-  More questions about the product as a whole are used for the products that
-  don't have enough attributes. The product details are appended to each answer.
+- Generates up to six questions and answers for each product. One question is
+  about the product as a whole, the other questions are about attributes from
+  the product specifications, for example the fabric, the pattern or the
+  occasion. More questions about the product as a whole are used for the
+  products that don't have enough attributes. There are five of them, so a
+  product without an attribute to ask about has five questions. The product
+  details are appended to each answer.
 - Formats each question and answer as a prompt for the Gemma instruction tuned
   model.
 - Splits the prompts into training (80%), validation (10%) and test (10%) data
@@ -198,10 +200,6 @@ One fast way to open the Logs Explorer and have the query pre-populated is to
 click the `View in Logs Explorer` button on the right side of the `LOGS` tab
 once you are on the `Job details` page.
 
-When the link is opened, you should see something like the following:
-
-![log-explorer-query](/docs/use-cases/model-fine-tuning-pipeline/data-preparation/gemma-it/images/log-explorer-query.png)
-
 The Logs Explorer provides many nice features besides tweaking your log query in
 the `Query` field. For example, if you want to know which steps the job has
 completed, you can run the following query:
@@ -244,8 +242,6 @@ from the logs. The result can also be charted. For example, you can click the
 `Analyze results` link on the Logs Explorer page and open the Log Analytics page
 with a converted SQL query. The chart and table you view can also be added to a
 dashboard.
-
-![log-analytics](/docs/use-cases/model-fine-tuning-pipeline/data-preparation/gemma-it/images/log-analytics.png)
 
 ## Notes
 

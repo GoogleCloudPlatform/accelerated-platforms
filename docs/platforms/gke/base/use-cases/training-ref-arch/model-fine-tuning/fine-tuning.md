@@ -104,6 +104,20 @@ The fine-tuned model can be deployed with an inference serving engine.
   in approximately 180 minutes. The jobs for the other accelerators use the
   default values of the fine-tuning script, and were not run with this data set.
 
+- Optional: fine-tune from the beginning.
+
+  The job resumes from the last checkpoint in the `model-gemma2/experiment`
+  folder of the model bucket when there is one. To fine-tune from the beginning,
+  for example after the data set or the hyperparameters have changed, delete the
+  folder before you create the job. The folder also holds the fine-tuned model
+  of the previous job, which the
+  [model evaluation](/docs/platforms/gke/base/use-cases/training-ref-arch/model-fine-tuning/model-evaluation.md)
+  uses.
+
+  ```sh
+  gcloud storage rm --recursive gs://${mft_bucket_model_name}/model-gemma2/experiment
+  ```
+
 - Create the job
 
   ```shell
@@ -128,14 +142,6 @@ The fine-tuned model can be deployed with an inference serving engine.
 
   ```sh
   gcloud storage ls gs://${mft_bucket_model_name}/model-gemma2/experiment
-  ```
-
-  The job resumes from the last checkpoint in this folder when there is one. To
-  fine-tune from the beginning, for example after the data set or the
-  hyperparameters have changed, delete the folder before creating the job.
-
-  ```sh
-  gcloud storage rm --recursive gs://${mft_bucket_model_name}/model-gemma2/experiment
   ```
 
 - Delete the job.

@@ -127,7 +127,12 @@ class TestDataCleaner(unittest.TestCase):
         self.assertEqual(cleaned_df["c1_name"][0], "Category B")
 
     def test_prep_cat_arrow_strings(self):
-        """Test the categories of a column that is backed by Arrow."""
+        """Test the categories of a column that is backed by Arrow.
+
+        The previous implementation, with Series.str.split(), fails this test with
+        pandas 3 and passes it with pandas 2, where the column is converted to
+        Python strings before the split.
+        """
         df = self.df.copy()
         df["product_category_tree"] = df["product_category_tree"].astype(
             pd.ArrowDtype(pa.string())

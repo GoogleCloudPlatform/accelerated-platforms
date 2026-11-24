@@ -58,8 +58,9 @@ COPY --from=devel /workspace/wheels /workspace/wheels
 COPY --from=primary requirements.txt /workspace/
 
 # The Python environment of the base image is marked as externally managed
-# (PEP 668). The packages are installed next to the PyTorch packages that the
-# base image provides in that environment.
+# (PEP 668). The packages are installed into that environment. pip replaces the
+# torch build of the base image with the wheel of the same version from PyPI,
+# and keeps the torchvision and torchaudio builds of the base image.
 RUN pip install --break-system-packages --no-cache /workspace/wheels/*
 
 # Fail the build if the packages used for fine-tuning can't be imported, for

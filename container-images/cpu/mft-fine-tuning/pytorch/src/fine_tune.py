@@ -43,7 +43,9 @@ class AdapterCheckpointCallback(TrainerCallback):
 
     The fine-tuning can't resume from the checkpoints of the trainer alone. For a
     model that is distributed with FSDP, the adapter weights of those checkpoints
-    are not restored (peft 0.20.0 and later).
+    are not restored (peft 0.20.0 and later, see
+    https://github.com/huggingface/peft/issues/4223). The copy, and the code that
+    loads it, can be removed when peft restores the adapter weights again.
     """
 
     def on_save(self, args, state, control, model=None, **kwargs):

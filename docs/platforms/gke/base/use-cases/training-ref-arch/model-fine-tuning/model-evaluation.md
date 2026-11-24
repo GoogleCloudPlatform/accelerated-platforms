@@ -69,6 +69,10 @@ validate the results.
     export ACCELERATOR_TYPE="l4"
     ```
 
+  The deployment for the NVIDIA A100 accelerators was run with the inference
+  server version of this guide. The deployment for the NVIDIA Tesla L4
+  accelerators uses the same version and was not run with it.
+
   Ensure that you have enough quota in your project to provision the selected
   accelerator type. For more information, see about viewing GPU quotas, see
 
@@ -132,6 +136,9 @@ validate the results.
   "message": "Exact Answers Count: 3009"
   "message": "Product details accuracy of Gemma2 9B IT model on test dataset is 98.24%"
   ```
+
+  The test dataset of the evaluation is the validation and the test data sets of
+  the data preparation together: 1,655 + 1,695 = 3,350 questions.
 
   For the meaning of the results, see
   [Accuracy Calculation](/docs/platforms/gke/base/use-cases/training-ref-arch/model-fine-tuning/README.md#accuracy-calculation).

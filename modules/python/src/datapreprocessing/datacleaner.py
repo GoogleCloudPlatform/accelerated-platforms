@@ -304,8 +304,9 @@ class DataPreprocessor:
             DataFrame with split category columns and original tree dropped.
         """
         df["product_category_tree"] = df["product_category_tree"].apply(self.reformat)
-        # Split with Python, not with pandas: pandas returns lists for a column of
-        # Python strings and arrays for a column that is backed by Arrow
+        # Split with Python, not with Series.str.split(): with pandas 3 a column
+        # that is backed by Arrow stays backed by Arrow, and the split then
+        # returns arrays instead of lists
         splits = [str(tree).split(">>") for tree in df["product_category_tree"]]
 
         # Enforce exactly 6 static categorical dimensions to prevent cross-batch schema errors

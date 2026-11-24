@@ -69,10 +69,17 @@ terraform fmt -recursive
 
 # If any versions.tf provider constraints changed, update all .terraform.lock.hcl files:
 .dev-tools/bin/update_terraform_lock_files.sh
-
-# Clean up any local .terraform directories and check for stray tfstate files:
-.dev-tools/bin/cleanup_terraform.sh
 ```
+
+`.dev-tools/bin/cleanup_terraform.sh` is not a pre-PR check. It runs
+`terraform init` and `terraform apply` on `platforms/gke/base/_shared_config`
+(through `set_environment_variables.sh`) and deletes every `.terraform`
+directory in the repository. It also deletes
+`platforms/gke/base/core/initialize/backend.tf` unless
+`gcloud storage buckets describe` finds the bucket that file names. Without
+Google Cloud credentials for that project, the call fails and the file is
+deleted. Run the script only to clean up your own environment after a deploy and
+teardown (`R-2.8`), never while reviewing someone else's PR (`R-7.18`).
 
 ### 1.5 Kustomize & Kubernetes Manifest Rendering
 
@@ -184,6 +191,10 @@ Run before any line-level review:
 
 1. **Upstream Base vs Overlay Merge Audit (`I-1`–`I-10`)**:
    - Render or trace the Kustomize overlay against its upstream `llm-d` base.
+     Rendering needs `base/deployment.env`, which the PR's `configure_*.sh`
+     generates (section 1.5), so render only in an isolated environment with no
+     cloud, cluster, or GitHub credentials (`R-7.18`). Otherwise, trace the
+     patches against the upstream base without running them.
    - Check pod `resources.requests/limits` (`memory`, `cpu`, `google.com/tpu`)
      against the target GKE node's allocatable memory (`I-1`, `I-8`).
    - Check `$patch: replace` on `nodeSelector`—ensure

@@ -41,14 +41,6 @@ resource "google_storage_bucket_iam_member" "cloudbuild_bucket_gsa_build_storage
   role   = "roles/storage.objectViewer"
 }
 
-# AIPLATFORM
-###########################################################
-resource "google_project_iam_member" "data_preparation_aiplatform_user" {
-  project = google_project_service.aiplatform_googleapis_com.project
-  member  = "${local.wi_member_principal_prefix}/${local.mft_kubernetes_service_accounts["data-preparation"].service_account_name}"
-  role    = "roles/aiplatform.user"
-}
-
 # DATA BUCKET
 ###########################################################
 resource "google_storage_bucket_iam_member" "data_bucket_batch_inference_storage_object_user" {

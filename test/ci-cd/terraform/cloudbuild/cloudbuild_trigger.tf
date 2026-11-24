@@ -159,6 +159,7 @@ resource "google_cloudbuild_trigger" "container_image_mft_data_preparation_gemma
   filename = "test/ci-cd/cloudbuild/container-images/cpu/mft-data-preparation/gemma-it/cloudbuild.yaml"
   included_files = [
     "container-images/cpu/mft-data-preparation/gemma-it/**",
+    "modules/python/src/datapreparation/**",
     "test/ci-cd/cloudbuild/container-images/cpu/mft-data-preparation/gemma-it/cloudbuild.yaml",
   ]
   location        = var.build_location

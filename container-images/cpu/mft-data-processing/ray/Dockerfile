@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM python:3.12.8-slim-bookworm
+FROM python:3.12.16-slim-bookworm
 
 ENV PATH=/venv/bin:${PATH}
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -29,7 +29,7 @@ COPY --from=primary requirements.txt /venv/requirements.txt
 RUN pip install --no-cache-dir -r /venv/requirements.txt
 
 COPY --from=primary logging.conf preprocessing_finetuning.py /app/
-COPY --from=data-processing * /app/datapreprocessing
+COPY --from=data-processing datapreprocessing/*.py /app/datapreprocessing/
 
 WORKDIR /app
 

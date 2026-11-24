@@ -14,10 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# The PyTorch version of the base images must match the torch version in
+# src/requirements.txt. The base images provide the torchvision and torchaudio
+# builds for that PyTorch version, a different torch version breaks them.
+
 # DEVELOPMENT DEVELOPMENT DEVELOPMENT DEVELOPMENT DEVELOPMENT DEVELOPMENT
 # DEVELOPMENT DEVELOPMENT DEVELOPMENT DEVELOPMENT DEVELOPMENT DEVELOPMENT
 # DEVELOPMENT DEVELOPMENT DEVELOPMENT DEVELOPMENT DEVELOPMENT DEVELOPMENT
-FROM pytorch/pytorch:2.5.1-cuda12.1-cudnn9-devel AS devel
+FROM pytorch/pytorch:2.15.0-cuda13.2-cudnn9-devel AS devel
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
@@ -41,7 +45,7 @@ RUN pip wheel --no-cache-dir --no-deps --wheel-dir /workspace/wheels -r /workspa
 # FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL
 # FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL
 # FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL
-FROM pytorch/pytorch:2.5.1-cuda12.1-cudnn9-runtime
+FROM pytorch/pytorch:2.15.0-cuda13.2-cudnn9-runtime
 
 WORKDIR /workspace/
 
@@ -52,6 +56,15 @@ RUN apt-get update && \
 
 COPY --from=devel /workspace/wheels /workspace/wheels
 COPY --from=primary requirements.txt /workspace/
-RUN pip install --no-cache /workspace/wheels/*
+
+# The Python environment of the base image is marked as externally managed
+# (PEP 668). The packages are installed into that environment. pip replaces the
+# torch build of the base image with the wheel of the same version from PyPI,
+# and keeps the torchvision and torchaudio builds of the base image.
+RUN pip install --break-system-packages --no-cache /workspace/wheels/*
+
+# Fail the build if the packages used for fine-tuning can't be imported, for
+# example when the torch version doesn't match the base image.
+RUN python -c "import accelerate, peft, torch, torchvision, transformers, trl"
 
 COPY --from=primary fine_tune.py fsdp_config.yaml logging.conf /workspace/

@@ -12,17 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import concurrent.futures
 import json
 import logging
 import logging.config
 import os
 import re
 import signal
+import sys
 
 import pandas as pd
 import requests
 from datasets import load_from_disk
 from google.cloud import storage
+
+# Seconds to wait for the answer of the model to a question
+REQUEST_TIMEOUT_SECONDS = 600
 
 
 def graceful_shutdown(signal_number, stack_frame):
@@ -40,6 +45,10 @@ class ModelEvaluation:
         self.output_file = os.environ["PREDICTIONS_FILE"]
         self.gcs_bucket = os.environ["BUCKET"]
         self.dataset_output_path = os.environ["DATASET_OUTPUT_PATH"]
+        # Number of requests that are sent to the model at the same time
+        self.concurrent_requests = int(os.environ.get("CONCURRENT_REQUESTS", "32"))
+        if self.concurrent_requests < 1:
+            raise ValueError("CONCURRENT_REQUESTS must be at least 1")
         training_dataset = load_from_disk(
             f"gs://{self.gcs_bucket}/{self.dataset_output_path}/training"
         )
@@ -54,46 +63,69 @@ class ModelEvaluation:
         self.validation_df = validation_dataset.to_pandas()
         self.test_df = test_dataset.to_pandas()
         # Concatenate vertically (stack rows)
-        self.df = pd.concat([self.validation_df, self.test_df], axis=0)
-        self.df.reset_index(drop=True, inplace=True)
+        self.df = pd.concat([self.validation_df, self.test_df], axis=0).reset_index(
+            drop=True
+        )
+
+    def get_prediction(self, user_message: str) -> str:
+        """Sends a question to the model and returns the answer of the model."""
+        headers = {"Content-Type": "application/json"}
+        # Request Data
+        request_data = {
+            "model": self.model_name,
+            "messages": [{"role": "user", "content": user_message}],
+            "temperature": 0.5,
+            "top_k": 1.0,
+            "top_p": 1.0,
+            # The longest answers of the test dataset have more than 256 tokens
+            "max_tokens": 512,
+        }
+        response = requests.post(
+            self.api_endpoint,
+            headers=headers,
+            data=json.dumps(request_data),
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+
+        # Check for Successful Response
+        if response.status_code == 200:
+            response_data = response.json()
+            # Assuming the response structure matches OpenAI's format
+            return response_data["choices"][0]["message"]["content"]
+
+        logger.error(f"Error: {response.status_code} - {response.text}")
+        # An empty prediction keeps the predictions aligned with the questions
+        return ""
 
     def predict(self):
         logger.info("Start prediction evaluation")
-        # Send the Request
-        headers = {"Content-Type": "application/json"}
-        for i in range(len(self.df)):
-            user_message = self.df["Question"][i]
-            # Request Data
-            request_data = {
-                "model": self.model_name,
-                "messages": [{"role": "user", "content": user_message}],
-                "temperature": 0.5,
-                "top_k": 1.0,
-                "top_p": 1.0,
-                "max_tokens": 256,
-            }
-            # print(f"API Endpoint {self.api_endpoint}")
-            response = requests.post(
-                self.api_endpoint, headers=headers, data=json.dumps(request_data)
-            )
+        # The prompts of the training dataset have the context of the
+        # conversation in front of the question
+        user_messages = [
+            f"Context:{context}\n{question}"
+            for context, question in zip(self.df["Context"], self.df["Question"])
+        ]
+        # The requests are sent concurrently, and the inference server processes
+        # them in batches. map() returns the predictions in the order of the
+        # questions, whatever the order the requests complete in. When a request
+        # raises an exception, for example because the inference server can't be
+        # reached, the questions that are not sent yet are cancelled and the
+        # exception ends the job before any prediction is written.
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=self.concurrent_requests
+        ) as executor:
+            predictions = list(executor.map(self.get_prediction, user_messages))
 
-            # Check for Successful Response
-            if response.status_code == 200:
-                response_data = response.json()
-                # Assuming the response structure matches OpenAI's format
-                ai_response = response_data["choices"][0]["message"]["content"]
-
-                with open(self.output_file, "a") as f:
-                    f.write(ai_response + "\n")  # Append with newline
-                    f.write("----------\n")
-            else:
-                logger.error(f"Error: {response.status_code} - {response.text}")
+        with open(self.output_file, "w") as f:
+            for ai_response in predictions:
+                f.write(ai_response + "\n")
+                f.write("----------\n")
 
         # save file to gcs after completion
         model_iteration_tag = self.model_name.rsplit("-", 1)[1]
         client = storage.Client()
         bucket = client.get_bucket(self.gcs_bucket)
-        with open(self.output_file, "r") as local_file:
+        with open(self.output_file, "rb") as local_file:
             blob = bucket.blob(f"predictions/{self.output_file}-{model_iteration_tag}")
             blob.upload_from_file(local_file)
 
@@ -119,6 +151,56 @@ class ModelEvaluation:
                     if not current_product:
                         current_product = line.split(": ")[1]
         return product_names
+
+    # Function to extract the predictions, one for each question
+    def extract_predictions(self, predictions_file: str) -> list[str]:
+        predictions = []
+        current_prediction = []
+        with open(predictions_file, "r") as file:
+            for line in file:
+                # Check for the delimiter
+                if line.strip() == "----------":
+                    predictions.append("\n".join(current_prediction))
+                    current_prediction = []  # Reset for the next prediction
+                else:
+                    current_prediction.append(line.rstrip("\n"))
+        return predictions
+
+    # Function to split an answer into its lines, product name and product details
+    def parse_answer(self, answer: str) -> (list[str], str, set[str]):
+        lines = [line.strip() for line in answer.splitlines() if line.strip()]
+        product_name = None
+        product_details = set()
+        for line in lines:
+            if line.startswith("Product Name:"):
+                if not product_name:
+                    product_name = line
+            elif line.startswith("- "):
+                product_details.add(line)
+        return lines, product_name, product_details
+
+    # Compare each prediction with the expected answer of its question
+    def compare_with_expected_answers(
+        self, predictions: list[str], expected_answers: list[str]
+    ) -> dict[str, int]:
+        comparison = {
+            "correct_products": 0,
+            "expected_details": 0,
+            "correct_details": 0,
+            "exact_answers": 0,
+        }
+        for prediction, expected_answer in zip(predictions, expected_answers):
+            lines, product_name, details = self.parse_answer(prediction)
+            expected_lines, expected_product_name, expected_details = self.parse_answer(
+                expected_answer
+            )
+            if product_name and product_name == expected_product_name:
+                comparison["correct_products"] += 1
+            comparison["expected_details"] += len(expected_details)
+            comparison["correct_details"] += len(details & expected_details)
+            if lines == expected_lines:
+                comparison["exact_answers"] += 1
+        return comparison
 
     # This function counts no of predictions with no Product Names in it
     def count_no_products_prediction(self, product_names: list[str]) -> int:
@@ -184,6 +266,29 @@ class ModelEvaluation:
             )
             logger.info(
                 f"Precision of Gemma2 9B IT model on test dataset is {precision}%"
+            )
+
+        # Compare the predictions with the expected answers of the test dataset
+        predictions = self.extract_predictions(self.output_file)
+        if len(predictions) != total_test_size:
+            logger.warning(
+                f"Found {len(predictions)} predictions for {total_test_size} questions, "
+                "unable to compare the predictions with the expected answers"
+            )
+            return
+
+        comparison = self.compare_with_expected_answers(
+            predictions, self.df["Answer"].tolist()
+        )
+        logger.info(f"Correct Products Count: {comparison['correct_products']}")
+        logger.info(f"Exact Answers Count: {comparison['exact_answers']}")
+        if comparison["expected_details"]:
+            details_accuracy = round(
+                (comparison["correct_details"] / comparison["expected_details"]) * 100,
+                2,
+            )
+            logger.info(
+                f"Product details accuracy of Gemma2 9B IT model on test dataset is {details_accuracy}%"
             )
 
     def evaluate(self):

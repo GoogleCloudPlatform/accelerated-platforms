@@ -24,13 +24,6 @@ data "google_project" "iap" {
   project_id = local.mft_iap_project_id
 }
 
-resource "google_project_service" "aiplatform_googleapis_com" {
-  disable_dependent_services = false
-  disable_on_destroy         = false
-  project                    = data.google_project.cluster.project_id
-  service                    = "aiplatform.googleapis.com"
-}
-
 resource "google_project_service" "artifactregistry_googleapis_com" {
   disable_dependent_services = false
   disable_on_destroy         = false

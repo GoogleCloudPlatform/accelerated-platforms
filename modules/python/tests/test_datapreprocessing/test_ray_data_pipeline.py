@@ -42,13 +42,19 @@ class TestRayDataPipeline(unittest.TestCase):
         )
         self.assertEqual(filename, "test_output.csv")
 
+    def test_single_filename_provider_for_task(self):
+        """Test the method that Ray Data 2.56 and later name the written file with."""
+        provider = SingleFilenameProvider("test_output.csv")
+        filename = provider.get_filename_for_task(write_uuid="uuid", task_index=0)
+        self.assertEqual(filename, "test_output.csv")
+
     @patch("datapreprocessing.datacleaner.storage.Client")
     @patch("datapreprocessing.datacleaner.DataPreprocessor.process_data")
     @patch("datapreprocessing.datacleaner.DataPrepForRag.process_rag_input")
     def test_preprocessing_actor(
         self, mock_rag, mock_process_data, mock_storage_client
     ):
-        """Test PreprocessingActor batch transformation pipeline call."""
+        """Test that PreprocessingActor cleans a batch and keeps every product."""
         df_input = pd.DataFrame(
             {
                 "uniq_id": [1, 2],
@@ -58,17 +64,18 @@ class TestRayDataPipeline(unittest.TestCase):
                 "image": ['["url1"]', '["url2"]'],
             }
         )
-        mock_process_data.return_value = df_input
-        mock_rag.return_value = pd.DataFrame({"Id": [1, 2]})
+        cleaned_df = pd.DataFrame({"uniq_id": [1, 2], "c0_name": ["cat1", "cat3"]})
+        mock_process_data.return_value = cleaned_df
 
         actor = PreprocessingActor(
             output_bucket="test-bucket", output_image_folder="test-folder"
         )
         result = actor(df_input)
 
-        self.assertIn("Id", result.columns)
+        self.assertIs(result, cleaned_df)
         mock_process_data.assert_called_once()
-        mock_rag.assert_called_once()
+        # Products are selected by category on the whole dataset, not per batch
+        mock_rag.assert_not_called()
 
     @patch("src.datapreprocessing.ray_data_pipeline.ray")
     def test_orchestrator_execute_local(self, mock_ray):

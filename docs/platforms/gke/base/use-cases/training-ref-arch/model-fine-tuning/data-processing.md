@@ -28,7 +28,7 @@ does the following:
 - Cleanup & extract attributes as key-value pairs
 - Uploads the processed data as a csv file to Google Cloud Storage
 
-The data processing step takes approximately 18-20 minutes.
+The data processing step takes approximately 15 minutes.
 
 ## Pre-requisites
 
@@ -62,7 +62,7 @@ The data processing step takes approximately 18-20 minutes.
 - Source the environment configuration.
 
   ```shell
-  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/_shared_config/scripts/set_environment_variables.sh"
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
   ```
 
 - Install the `kaggle` API package.

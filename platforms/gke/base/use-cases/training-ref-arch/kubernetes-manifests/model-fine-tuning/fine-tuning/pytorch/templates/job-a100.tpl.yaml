@@ -27,6 +27,9 @@ spec:
         app: finetune-job
         ml-platform: fine-tuning
       annotations:
+        # The job is not retried: the cluster autoscaler must not evict the Pod when it
+        # scales down or replaces a node
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
         gke-gcsfuse/volumes: "true"
         gke-gcsfuse/memory-limit: "35Gi"
     spec:
@@ -80,9 +83,26 @@ spec:
             - name: MODEL_PATH
               value: "/model-data/model-gemma2/experiment"
             - name: EPOCHS
+              value: "3"
+            - name: LORA_R
+              value: "16"
+            - name: LORA_ALPHA
+              value: "32"
+            - name: LORA_DROPOUT
+              value: "0.2"
+            - name: MAX_GRAD_NORM
               value: "1"
+            - name: LEARNING_RATE
+              value: "2e-4"
+            - name: WEIGHT_DECAY
+              value: "0.005"
+            - name: WARMUP_RATIO
+              value: "0.2"
+            - name: MAX_SEQ_LENGTH
+              value: "2048"
+            # Batch size for each GPU, 8 uses up to 34 GB of the 40 GB of a GPU
             - name: TRAIN_BATCH_SIZE
-              value: "1"
+              value: "8"
           volumeMounts:
             - mountPath: /dev/shm
               name: dshm

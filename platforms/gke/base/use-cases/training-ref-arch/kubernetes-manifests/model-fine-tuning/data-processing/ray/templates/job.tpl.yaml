@@ -20,6 +20,10 @@ spec:
   backoffLimit: 0
   template:
     metadata:
+      annotations:
+        # The job is not retried: the cluster autoscaler must not evict the Pod when it
+        # scales down or replaces a node
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
       labels:
         app: data-processing
         ml-platform: data-processing

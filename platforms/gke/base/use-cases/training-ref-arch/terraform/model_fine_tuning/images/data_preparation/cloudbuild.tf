@@ -13,9 +13,10 @@
 # limitations under the License.
 
 locals {
-  image_destination = local.mft_data_preparation_image_url
-  image_directory   = "container-images/cpu/mft-data-preparation/gemma-it/"
-  source_folder     = "${local.acp_root}/container-images/cpu/mft-data-preparation/gemma-it/src"
+  image_destination              = local.mft_data_preparation_image_url
+  image_directory                = "container-images/cpu/mft-data-preparation/gemma-it"
+  source_folder                  = "${local.acp_root}/container-images/cpu/mft-data-preparation/gemma-it/src"
+  source_data_preparation_folder = "${local.acp_root}/modules/python/src/datapreparation"
 }
 
 resource "terraform_data" "submit_docker_build" {
@@ -44,10 +45,11 @@ EOT
   }
 
   triggers_replace = {
-    always_run           = timestamp()
-    cloudbuild_yaml_hash = filebase64sha256("${local.acp_root}/${local.image_directory}/cloudbuild.yaml")
-    dockerfile_hash      = filebase64sha256("${local.acp_root}/${local.image_directory}/Dockerfile")
-    ignore_file_hash     = filebase64sha256("${local.acp_root}/${local.image_directory}/.gcloudignore")
-    source_hash          = sha256(join("", [for file in fileset("${local.source_folder}", "**") : filesha256("${local.source_folder}/${file}")]))
+    always_run                   = timestamp()
+    cloudbuild_yaml_hash         = filebase64sha256("${local.acp_root}/${local.image_directory}/cloudbuild.yaml")
+    dockerfile_hash              = filebase64sha256("${local.acp_root}/${local.image_directory}/Dockerfile")
+    ignore_file_hash             = filebase64sha256("${local.acp_root}/${local.image_directory}/.gcloudignore")
+    source_hash                  = sha256(join("", [for file in fileset("${local.source_folder}", "**") : filesha256("${local.source_folder}/${file}")]))
+    source_data_preparation_hash = sha256(join("", [for file in fileset("${local.source_data_preparation_folder}", "**") : filesha256("${local.source_data_preparation_folder}/${file}")]))
   }
 }

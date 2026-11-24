@@ -100,7 +100,7 @@ for additional information
 - Set environment variables.
 
   ```shell
-  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/_shared_config/scripts/set_environment_variables.sh"
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
   ```
 
 - Ensure that IAP is enabled.
@@ -156,7 +156,7 @@ IAP application or resources.
 - Set the IAP domain in the configuration file
 
   ```
-  sed -i '/^mft_iap_domain[[:blank:]]*=/{h;s/=.*/= "'"${IAP_DOMAIN}"'"/};${x;/^$/{s//mft_iap_domain="'"${IAP_DOMAIN}"'"/;H};x}' ${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/_shared_config/mft.auto.tfvars
+  sed -i '/^mft_iap_domain[[:blank:]]*=/{h;s/=.*/= "'"${IAP_DOMAIN}"'"/};${x;/^$/{s//mft_iap_domain="'"${IAP_DOMAIN}"'"/;H};x}' ${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/terraform/_shared_config/mft.auto.tfvars
   ```
 
 ### Install Terraform 1.8.0+

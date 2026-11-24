@@ -18,12 +18,33 @@ resource "google_storage_bucket_iam_member" "data_bucket_mlflow_storage_object_a
   role   = "roles/storage.objectAdmin"
 }
 
+locals {
+  # The hosts that the MLflow tracking server answers requests for: port forwarding to the
+  # service, the service from inside the cluster and the endpoint of the gateway
+  mlflow_allowed_hosts = [
+    "localhost:*",
+    "127.0.0.1:*",
+    "${local.mlflow_endpoint.service_name}:${local.mlflow_endpoint.port}",
+    "${local.mlflow_endpoint.service_name}.${local.mft_kubernetes_namespace}:${local.mlflow_endpoint.port}",
+    "${local.mlflow_endpoint.service_name}.${local.mft_kubernetes_namespace}.svc:${local.mlflow_endpoint.port}",
+    "${local.mlflow_endpoint.service_name}.${local.mft_kubernetes_namespace}.svc.cluster.local:${local.mlflow_endpoint.port}",
+    local.mlflow_endpoint.host,
+  ]
+  mlflow_endpoint = local.mft_endpoints["mlflow-tracking"]
+  mlflow_version  = "3.18.0"
+}
+
 resource "local_file" "mlflow_manifest" {
   content = templatefile(
     "${path.module}/templates/mlflow/manifests.tftpl.yaml",
     {
+      allowed_hosts        = join(",", local.mlflow_allowed_hosts),
       bucket_name          = google_storage_bucket.data.name,
+      cors_allowed_origins = "https://${local.mlflow_endpoint.host}",
+      mlflow_version       = local.mlflow_version,
       service_account_name = local.mft_kubernetes_service_accounts["mlflow"].service_account_name,
+      service_name         = local.mlflow_endpoint.service_name,
+      service_port         = local.mlflow_endpoint.port,
     }
   )
   filename = "${local.mft_kubernetes_namespace_manifests_directory}/mlflow.yaml"

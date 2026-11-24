@@ -1,8 +1,7 @@
 # Model evaluation and validation
 
 Once a model has completed fine-tuning, the model must be validated for
-precision and accuracy against the dataset used to fine-tune the model. The
-fine-tuned model in this example has been, Built with Meta Llama 3.1. In this
+precision and accuracy against the dataset used to fine-tune the model. In this
 example, the model is deployed on an inference serving engine to host the model
 for the model validation to take place. Two steps are performed for this
 activity, the first is to send prompts to the fine-tuned model, the second is to
@@ -36,7 +35,7 @@ validate the results.
 - Source the environment configuration.
 
   ```shell
-  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/_shared_config/scripts/set_environment_variables.sh"
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
   ```
 
 ## Build the container image
@@ -64,17 +63,15 @@ validate the results.
     export ACCELERATOR_TYPE="a100"
     ```
 
-  - **NVIDIA H100 80GB**:
-
-    ```shell
-    export ACCELERATOR_TYPE="h100"
-    ```
-
   - **NVIDIA Tesla L4 24GB**:
 
     ```shell
     export ACCELERATOR_TYPE="l4"
     ```
+
+  The deployment for the NVIDIA A100 accelerators was run with the inference
+  server version of this guide. The deployment for the NVIDIA Tesla L4
+  accelerators uses the same version and was not run with it.
 
   Ensure that you have enough quota in your project to provision the selected
   accelerator type. For more information, see about viewing GPU quotas, see
@@ -112,6 +109,39 @@ validate the results.
   ```
 
 - Wait for the job to complete
+
+  ```sh
+  kubectl --namespace ${mft_kubernetes_namespace} wait --for=condition=complete --timeout=1200s job/model-eval
+  ```
+
+  The job takes approximately 5 minutes. It sends the questions to the model
+  concurrently. The `CONCURRENT_REQUESTS` environment variable of the job is the
+  number of questions that are sent at the same time. When the job is complete,
+  the logs of the job show the results:
+
+  ```sh
+  kubectl --namespace ${mft_kubernetes_namespace} logs job/model-eval | grep -o -E '"message": "(Test dataset size|True Positives|False Positives|Number of predictions|Accuracy|Precision|Correct Products|Exact Answers|Product details accuracy)[^"]*"'
+  ```
+
+  The output should be similar to:
+
+  ```output
+  "message": "Test dataset size: 3350"
+  "message": "True Positives Count: 3350"
+  "message": "False Positives Count: 0"
+  "message": "Number of predictions with no product details: 0"
+  "message": "Accuracy of Gemma2 9B IT model on test dataset is 100.0%"
+  "message": "Precision of Gemma2 9B IT model on test dataset is 100.0%"
+  "message": "Correct Products Count: 3350"
+  "message": "Exact Answers Count: 3009"
+  "message": "Product details accuracy of Gemma2 9B IT model on test dataset is 98.24%"
+  ```
+
+  The test dataset of the evaluation is the validation and the test data sets of
+  the data preparation together: 1,655 + 1,695 = 3,350 questions.
+
+  For the meaning of the results, see
+  [Accuracy Calculation](/docs/platforms/gke/base/use-cases/training-ref-arch/model-fine-tuning/README.md#accuracy-calculation).
 
 - Delete the job
 

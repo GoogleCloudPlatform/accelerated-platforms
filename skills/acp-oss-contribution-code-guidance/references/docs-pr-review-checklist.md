@@ -28,7 +28,11 @@ Cite these rule IDs (`D-x`) in review comments alongside `R-x.y`, `I-x`, and
     `kubectl logs`, and `kubectl exec` must match the rendered names
     (`nameSuffix`, `replacements`, hashed Job names such as
     `${HF_MODEL_ID_HASH}-hf-model-to-gcs`). Verify with
-    `kubectl kustomize <overlay> | grep -E '^  name:|part-of'`.
+    `kubectl kustomize <overlay> | grep -E '^  name:|part-of'`. Rendering runs
+    the PR's `configure_*.sh` to generate `base/deployment.env` (section 1.5 of
+    [validation-and-code-review.md](validation-and-code-review.md)), so render
+    only in an isolated environment with no cloud, cluster, or GitHub
+    credentials (`R-7.18`).
 - **D-3 — One canonical entry point per task (`[MEDIUM]`, `R-6.3`)**:
   - Companion documents (guide + runbook) must use the same script for the same
     task (for example model download via `download_apply.sh` /

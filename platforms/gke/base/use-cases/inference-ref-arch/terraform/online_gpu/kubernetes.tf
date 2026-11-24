@@ -74,3 +74,19 @@ module "kubectl_apply_service_account" {
   manifest                    = "${local.ira_online_gpu_manifests_directory}/serviceaccount-${local.ira_online_gpu_kubernetes_service_account_name}.yaml"
   manifest_includes_namespace = true
 }
+
+module "kubectl_apply_nri_device_injector" {
+  for_each = toset(var.cluster_autopilot_enabled ? [] : ["standard"])
+
+  source = "../../../../modules/kubectl_apply"
+
+  apply_once                  = false
+  apply_server_side           = true
+  delete_ignore_not_found     = true
+  delete_timeout              = "60s"
+  error_on_delete_failure     = false
+  kubeconfig_file             = data.local_file.kubeconfig.filename
+  manifest                    = "${path.module}/templates/kubernetes/nri-device-injector.yaml"
+  manifest_includes_namespace = true
+  source_content_hash         = filesha256("${path.module}/templates/kubernetes/nri-device-injector.yaml")
+}

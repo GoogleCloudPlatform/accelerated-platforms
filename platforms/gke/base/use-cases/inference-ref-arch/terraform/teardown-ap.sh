@@ -94,6 +94,7 @@ rm -rf \
   "${ACP_PLATFORM_USE_CASE_DIR}/kubernetes-manifests/model-download/huggingface/downloader.env" \
   "${ACP_PLATFORM_USE_CASE_DIR}/kubernetes-manifests/model-download/huggingface/secretproviderclass-huggingface-tokens.yaml" \
   "${ACP_PLATFORM_USE_CASE_DIR}/kubernetes-manifests/online-inference-gpu/base/deployment.env" \
+  "${ACP_PLATFORM_USE_CASE_DIR}/kubernetes-manifests/online-inference-gpu/diffusers/base/diffusers.env" \
   "${ACP_PLATFORM_USE_CASE_DIR}/kubernetes-manifests/online-inference-gpu/dynamo-trtllm/base/dynamo-trtllm.env" \
   "${ACP_PLATFORM_USE_CASE_DIR}/kubernetes-manifests/online-inference-gpu/trtllm/base/trtllm.env" \
   "${ACP_PLATFORM_USE_CASE_DIR}/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/base/vllm.env" \
@@ -102,6 +103,7 @@ rm -rf \
 
 if [ "${ACP_TEARDOWN_RESET_CHECKOUT}" = "true" ]; then
   git restore \
+    "${ACP_PLATFORM_USE_CASE_DIR}/kubernetes-manifests/model-download/huggingface/kustomization.yaml" \
     "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config"/*.auto.tfvars
 fi
 

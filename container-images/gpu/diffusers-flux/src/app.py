@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import base64
 import io
 import os
 
@@ -20,25 +19,29 @@ import torch
 from diffusers import FluxPipeline
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
-from PIL import Image
 from pydantic import BaseModel
 
 # The model path is the local path mounted from GCS
 MODEL_DIR = os.environ.get("MODEL_ID")
+if not MODEL_DIR:
+    raise RuntimeError(
+        "MODEL_ID environment variable is required (for example, "
+        "'black-forest-labs/flux.1-schnell')."
+    )
 print(f"MODEL_DIR: {MODEL_DIR}")
 
 # Load the pipeline from the local GCS mount with local_files_only=True
 try:
     pipeline = FluxPipeline.from_pretrained(
         f"/gcs/{MODEL_DIR}",
-        torch_dtype=torch.float16,
+        dtype=torch.float16,
         local_files_only=True,
         device_map="balanced",
     )
 
 except Exception as e:
     print(f"Error loading pipeline: {e}")
-    raise e
+    raise
 
 
 class InferenceRequest(BaseModel):

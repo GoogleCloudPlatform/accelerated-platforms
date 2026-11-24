@@ -33,8 +33,18 @@ elif [[ "${HF_MODEL_ID}" == "black-forest-labs/flux.2-klein-4b" ]]; then
   DIFFUSERS_CONTAINER_IMAGE_URL="${ira_online_gpu_diffusers_sglang_diffusers_image_url}"
   DIFFUSERS_INFERENCE_SERVER="sglang"
 else
-  echo "[ERROR] Set a container image URL for model: ${HF_MODEL_ID:-"no model set"}"
-  return 1
+  echo "[ERROR] Unsupported HF_MODEL_ID '${HF_MODEL_ID:-"unset"}'; choose 'black-forest-labs/flux.1-schnell' or 'black-forest-labs/flux.2-klein-4b'." >&2
+  return 1 2>/dev/null || exit 1
+fi
+
+if [[ -z "${ACCELERATOR_TYPE:-}" ]]; then
+  echo "[ERROR] ACCELERATOR_TYPE is not set; export ACCELERATOR_TYPE (for example 'l4', 'h100', 'rtx-pro-6000', 'rtx-pro-6000-1-2', or 'rtx-pro-6000-1-4') before running configure_diffusers.sh." >&2
+  return 1 2>/dev/null || exit 1
+fi
+
+if [[ ! -d "${MY_PATH}/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}" ]]; then
+  echo "[ERROR] Overlay directory '${MY_PATH}/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}' does not exist for HF_MODEL_ID='${HF_MODEL_ID}' and ACCELERATOR_TYPE='${ACCELERATOR_TYPE}'." >&2
+  return 1 2>/dev/null || exit 1
 fi
 
 export DIFFUSERS_CONTAINER_IMAGE_URL

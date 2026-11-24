@@ -38,7 +38,6 @@ spec:
             - "/scripts/patch-entrypoint.sh"
           args:
             - "serve"
-            - "--mem-fraction-static=$(GPU_MEMORY_UTILIZATION)"
             - "--model-path=/gcs/$(MODEL_ID)"
             - "--tp-size=$(TENSOR_PARALLEL_SIZE)"
             - "--trust-remote-code"

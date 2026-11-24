@@ -30,12 +30,16 @@ COPY --from=primary requirements.txt .
 # Install Python into an isolated virtual environment and verify runtime imports at build time.
 # The NVIDIA apt source is removed first, so `apt-get upgrade` patches Ubuntu
 # packages only and the CUDA libraries stay at the versions of the pinned base image.
+# python3-venv is only needed to create the virtual environment. It is removed
+# afterwards together with the bundled wheels that it depends on, which image
+# scanners report.
 RUN rm /etc/apt/sources.list.d/cuda-*.list && \
     apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y --no-install-recommends python3 python3-venv && \
-    rm -rf /var/lib/apt/lists/* && \
     python3 -m venv --upgrade-deps /opt/venv && \
+    apt-get purge -y --auto-remove python3-venv && \
+    rm -rf /var/lib/apt/lists/* && \
     pip install --no-cache-dir -r requirements.txt && \
     python3 -c "import accelerate, diffusers, fastapi, PIL, google.protobuf, sentencepiece, torch, transformers, uvicorn; from diffusers import FluxPipeline"
 

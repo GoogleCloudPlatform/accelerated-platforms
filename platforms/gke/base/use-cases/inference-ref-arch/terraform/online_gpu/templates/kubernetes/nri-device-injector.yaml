@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Ported from GoogleCloudPlatform/container-engine-accelerators commit
-# 3491157acecc679edde064d22960405204b78191 (nri_device_injector/nri-device-injector.yaml).
+# Adapted from GoogleCloudPlatform/container-engine-accelerators commit
+# 3491157acecc679edde064d22960405204b78191 (nri_device_injector/nri-device-injector.yaml):
+# adds memory requests and limits, and drops the unused "root" hostPath volume.
 # Injects /dev/nvidia-caps/* character devices specified via
 # devices.gke.io/container.<name> pod annotations on GKE Standard GPU nodes
 # (required for fractional NVIDIA RTX PRO 6000 vGPU slices and MIG profiles).

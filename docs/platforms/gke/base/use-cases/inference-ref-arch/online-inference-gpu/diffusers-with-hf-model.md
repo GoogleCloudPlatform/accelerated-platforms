@@ -26,11 +26,17 @@ This example is built on top of the
    has been added to Secret Manager.
 
    > Note: Even when downloading an ungated model such as `FLUX.2-klein-4B`, the
-   > Secrets Store CSI driver requires an enabled secret version on
-   > `${huggingface_hub_access_token_read_secret_manager_secret_name}`. If you
-   > only plan to download ungated models without a Hugging Face token, add a
-   > single-newline placeholder secret version:
-   > `printf '\n' | gcloud secrets versions add "${huggingface_hub_access_token_read_secret_manager_secret_name}" --project="${huggingface_secret_manager_project_id}" --data-file=-`.
+   > Secrets Store CSI driver requires an enabled version of the Hugging Face
+   > Hub **Read** access token secret. If you only plan to download ungated
+   > models without a Hugging Face token, add a single-newline placeholder
+   > secret version:
+   >
+   > ```shell
+   > source "${ACP_REPO_DIR}/platforms/gke/base/_shared_config/scripts/set_environment_variables.sh"
+   > printf '\n' | gcloud secrets versions add "${huggingface_hub_access_token_read_secret_manager_secret_name}" \
+   >   --data-file=- \
+   >   --project="${huggingface_secret_manager_project_id}"
+   > ```
 
 ## Create and configure the Google Cloud resources
 
@@ -121,7 +127,7 @@ This example is built on top of the
    rm "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/gpu/diffusers_flux/tfplan"
    ```
 
-   The build usually takes about 25 minutes.
+   The build usually takes about 30 minutes.
 
 ## Deploy the inference workload
 
@@ -144,19 +150,18 @@ This example is built on top of the
    > source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
    > ```
 
-   | Model           | NVIDIA L4 | 2x NVIDIA L4 | 4x NVIDIA L4 | NVIDIA H100 | NVIDIA RTX Pro 6000 | 1/2 NVIDIA RTX Pro 6000 | 1/4 NVIDIA RTX Pro 6000 | 1/8 NVIDIA RTX Pro 6000 |
-   | --------------- | --------- | ------------ | ------------ | ----------- | ------------------- | ----------------------- | ----------------------- | ----------------------- |
-   | flux.1-schnell  | ✅        | Not tested   | Not tested   | ✅          | Not tested          | Not tested              | Not tested              | Not tested              |
-   | flux.2-klein-4B | ✅        | ✅           | ✅           | Not tested  | ✅                  | ✅ (Standard only)      | ✅ (Standard only)      | ❌                      |
+   | Model           | NVIDIA L4  | 2x NVIDIA L4 | 4x NVIDIA L4 | NVIDIA H100 | NVIDIA RTX Pro 6000 | 1/2 NVIDIA RTX Pro 6000 | 1/4 NVIDIA RTX Pro 6000 | 1/8 NVIDIA RTX Pro 6000 |
+   | --------------- | ---------- | ------------ | ------------ | ----------- | ------------------- | ----------------------- | ----------------------- | ----------------------- |
+   | flux.1-schnell  | ✅ (8x L4) | Not tested   | Not tested   | ✅          | Not tested          | Not tested              | Not tested              | Not tested              |
+   | flux.2-klein-4B | ✅         | ✅           | ✅           | Not tested  | ✅                  | ✅ (Standard only)      | ✅ (Standard only)      | Not tested              |
 
    > Fractional NVIDIA RTX Pro 6000 slices (`1/2` and `1/4`) require a **GKE
    > Standard** cluster (`deploy-standard.sh`), where `online_gpu` deploys the
    > GKE `nri-device-injector` DaemonSet to inject `/dev/nvidia-caps/*` devices
    > specified via `devices.gke.io/container.inference-server` annotations (GKE
    > Autopilot rejects `devices.gke.io/container` injection via
-   > `autopilot-device-injection-limitation`). The `1/8` (`12 GB`) slice is
-   > unsupported for `flux.2-klein-4B` because `bfloat16` model weights require
-   > ~`15.4 GB` of GPU memory.
+   > `autopilot-device-injection-limitation`). The `1/8` (`12 GB`) slice has no
+   > overlay and has not been validated for `flux.2-klein-4B`.
    >
    > When using fractional GPUs (`1/2`, `1/4`), you might see a warning in the
    > logs of the `inference-server` container:
@@ -167,7 +172,8 @@ This example is built on top of the
 
    - **NVIDIA Tesla L4 24GB**:
 
-     - 1x **NVIDIA Tesla L4**:
+     - 1x **NVIDIA Tesla L4** for `flux.2-klein-4b`, or 8x **NVIDIA Tesla L4**
+       on a `g2-standard-96` node for `flux.1-schnell`:
 
        ```shell
        export ACCELERATOR_TYPE="l4"
@@ -310,15 +316,22 @@ This example is built on top of the
    kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/diffusers/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
    ```
 
+   Delete the workload before you run `configure_diffusers.sh` for a different
+   model. The name of a generated ConfigMap depends on the configured model, so
+   a later `kubectl delete` would leave that ConfigMap behind.
+
 ## Clean up
 
-1. Destroy the container images.
+1. Remove the container image builds from the Terraform state.
 
    ```shell
    export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
    terraform -chdir="${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/gpu/diffusers_flux" init && \
    terraform -chdir="${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/gpu/diffusers_flux" destroy -auto-approve
    ```
+
+   The images stay in Artifact Registry until you tear down the reference
+   implementation.
 
 1. Destroy the online GPU resources.
 

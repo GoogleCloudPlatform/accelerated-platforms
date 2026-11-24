@@ -42,7 +42,9 @@ steps:
 
         export ACP_REPO_DIR="/workspace"
 
-        gcloud beta builds submit \
+        # The image's cloudbuild.yaml builds with its own directory as the
+        # Docker build context, so submit that directory as the build source.
+        gcloud beta builds submit "$${ACP_REPO_DIR}/container-images/gpu/sglang-diffusers" \
         --config="$${ACP_REPO_DIR}/container-images/gpu/sglang-diffusers/cloudbuild.yaml" \
         --project="${PROJECT_ID}" \
         --quiet \

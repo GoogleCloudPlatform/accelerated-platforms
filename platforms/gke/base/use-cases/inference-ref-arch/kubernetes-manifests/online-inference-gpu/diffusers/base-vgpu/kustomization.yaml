@@ -27,3 +27,4 @@ configMapGenerator:
 patches:
   - path: patch-server.yaml
   - path: patch-gcsfuse.yaml
+  - path: patch-fetch-safetensors.yaml

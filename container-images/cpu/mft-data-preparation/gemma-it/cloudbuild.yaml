@@ -22,10 +22,11 @@ options:
 steps:
   - args:
       - build
+      - --build-context=data-preparation=modules/python/src
       - --build-context=primary=container-images/cpu/mft-data-preparation/gemma-it/src
       - --file=container-images/cpu/mft-data-preparation/gemma-it/Dockerfile
       - --tag=${_DESTINATION}
       - .
-    id: "Build MFT Data Processing image"
+    id: "Build MFT Data Preparation image"
     name: "docker.io/docker:28.3.3-dind-alpine3.22"
     waitFor: ["-"]

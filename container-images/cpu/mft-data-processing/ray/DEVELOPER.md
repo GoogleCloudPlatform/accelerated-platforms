@@ -6,7 +6,7 @@
 - Install the `python` version
 
   ```
-  pyenv install 3.12.8
+  pyenv install 3.12.16
   ```
 
 - Clone the repository
@@ -31,7 +31,7 @@
 - Set the local `python` version
 
   ```
-  pyenv local 3.12.8
+  pyenv local 3.12.16
   ```
 
 - Create a virtual environment

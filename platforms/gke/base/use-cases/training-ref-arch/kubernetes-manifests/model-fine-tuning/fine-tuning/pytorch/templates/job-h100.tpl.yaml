@@ -27,6 +27,9 @@ spec:
         app: finetune-job
         ml-platform: fine-tuning
       annotations:
+        # The job is not retried: the cluster autoscaler must not evict the Pod when it
+        # scales down or replaces a node
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
         gke-gcsfuse/volumes: "true"
         gke-gcsfuse/memory-limit: "35Gi"
     spec:

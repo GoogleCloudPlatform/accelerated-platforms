@@ -65,7 +65,23 @@ class SingleFilenameProvider(FilenameProvider):
         Args:
             filename: The target output filename (e.g., 'flipkart.csv').
         """
+        super().__init__()
         self._filename = filename
+
+    def get_filename_for_task(self, write_uuid: str, task_index: int) -> str:
+        """Returns the fixed single filename for the write task.
+
+        Ray Data 2.56 and later name the files with this method, older releases
+        use get_filename_for_block().
+
+        Args:
+            write_uuid: UUID of the write operation.
+            task_index: Index of write task.
+
+        Returns:
+            The configured fixed target filename.
+        """
+        return self._filename
 
     def get_filename_for_block(
         self,
@@ -96,43 +112,44 @@ class PreprocessingActor:
     """Stateful worker pool for batch transformation in Ray Data pipeline."""
 
     def __init__(self, output_bucket: str, output_image_folder: str):
-        """Initializes worker actors with DataPreprocessor and DataPrepForRag transformers.
+        """Initializes worker actors with the DataPreprocessor transformer.
 
         Args:
             output_bucket: Destination GCS bucket name.
             output_image_folder: Destination GCS subfolder for images.
         """
-        from datapreprocessing.datacleaner import DataPrepForRag, DataPreprocessor
+        from datapreprocessing.datacleaner import DataPreprocessor
 
         self.preprocessor = DataPreprocessor()
-        self.rag_transformer = DataPrepForRag()
 
         self.output_bucket = output_bucket
         self.output_image_folder = output_image_folder
 
     def __call__(self, batch: pd.DataFrame) -> pd.DataFrame:
-        """Processes a pandas DataFrame batch through clean and RAG transformation stages.
+        """Cleans a pandas DataFrame batch of the product catalog.
+
+        Every product of the batch is kept. Selecting the products of the
+        categories that have enough products needs the whole dataset, a batch
+        can't tell how many products a category has, so it is done by the steps
+        that use the processed dataset.
 
         Args:
             batch: Input DataFrame batch from Ray Data.
 
         Returns:
-            Processed and formatted DataFrame batch.
+            Cleaned DataFrame batch.
         """
         try:
             worker_node_id = ray.get_runtime_context().get_node_id()
         except Exception:
             worker_node_id = "local-worker"
 
-        cleaned_df = self.preprocessor.process_data(
+        return self.preprocessor.process_data(
             batch,
             ray_worker_node_id=worker_node_id,
             gcs_bucket=self.output_bucket,
             gcs_folder=self.output_image_folder,
         )
-
-        rag_df = self.rag_transformer.process_rag_input(cleaned_df)
-        return rag_df
 
 
 class RayDataPipelineOrchestrator:

@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM python:3.12.4-slim
+FROM python:3.12.16-slim
 
 RUN apt-get update && \
     apt-get -y --no-install-recommends install python3-dev gcc python3-pip git && \

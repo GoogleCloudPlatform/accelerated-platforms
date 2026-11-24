@@ -16,6 +16,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 import pandas as pd
+import pyarrow as pa
 from src.datapreprocessing.datacleaner import DataPrepForRag, DataPreprocessor
 
 
@@ -124,6 +125,19 @@ class TestDataCleaner(unittest.TestCase):
         cleaned_df = self.cleaner.prep_cat(self.df.copy())
         self.assertEqual(cleaned_df["c0_name"][0], "Category A")
         self.assertEqual(cleaned_df["c1_name"][0], "Category B")
+
+    def test_prep_cat_arrow_strings(self):
+        """Test the categories of a column that is backed by Arrow."""
+        df = self.df.copy()
+        df["product_category_tree"] = df["product_category_tree"].astype(
+            pd.ArrowDtype(pa.string())
+        )
+        cleaned_df = self.cleaner.prep_cat(df)
+        self.assertEqual(
+            cleaned_df["c0_name"].tolist(), ["Category A", "Category C", ""]
+        )
+        self.assertEqual(cleaned_df["c1_name"].tolist(), ["Category B", "", ""])
+        self.assertEqual(cleaned_df["c5_name"].tolist(), ["", "", ""])
 
     @patch.object(DataPreprocessor, "get_product_image")
     @patch.object(DataPreprocessor, "prep_product_desc")

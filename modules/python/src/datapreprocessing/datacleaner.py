@@ -304,14 +304,16 @@ class DataPreprocessor:
             DataFrame with split category columns and original tree dropped.
         """
         df["product_category_tree"] = df["product_category_tree"].apply(self.reformat)
-        splits = df["product_category_tree"].str.split(">>")
+        # Split with Python, not with pandas: pandas returns lists for a column of
+        # Python strings and arrays for a column that is backed by Arrow
+        splits = [str(tree).split(">>") for tree in df["product_category_tree"]]
 
         # Enforce exactly 6 static categorical dimensions to prevent cross-batch schema errors
         max_levels = 6
         for i in range(max_levels):
-            df[f"c{i}_name"] = splits.apply(
-                lambda x: x[i].strip() if isinstance(x, list) and len(x) > i else ""
-            )
+            df[f"c{i}_name"] = [
+                levels[i].strip() if len(levels) > i else "" for levels in splits
+            ]
 
         df = df.drop("product_category_tree", axis=1)
         return df
@@ -432,7 +434,7 @@ class DataPrepForRag:
             ]
         ].copy()
 
-        rag_df.drop_duplicates(inplace=True)
+        rag_df = rag_df.drop_duplicates()
 
         rag_df["image_uri"] = rag_df["image_uri"].fillna("")
         rag_df["image"] = rag_df["image"].fillna("")

@@ -1,11 +1,10 @@
-datasets==2.20.0
-gcsfs==2024.5.0
-google-auth==2.35.0
-google-cloud-storage==2.17.0
-jsonpickle==3.2.2
-numpy==1.26.4
-openai==1.57.3
-pandas==2.2.2
-protobuf==5.29.6 ## lowered version
-tenacity==9.0.0
-thejsonlogger==0.0.3
+datasets==5.2.0
+gcsfs==2026.10.1
+# pandas is the version of the Ray cluster image (rayproject/ray:2.60.0-py312),
+# and pyarrow is the lowest version that datasets accepts. The image has pyarrow
+# 23.0.1, and the driver of the Ray job runs with it. The tasks can't read what
+# the driver sends them when their pyarrow version differs more than that.
+pandas==2.3.3
+pyarrow==24.0.0
+ray[data,default]==2.60.0
+thejsonlogger==0.0.5

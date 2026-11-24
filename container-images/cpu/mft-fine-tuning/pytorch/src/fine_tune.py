@@ -17,6 +17,7 @@ import logging
 import logging.config
 import os
 import random
+import re
 import signal
 import sys
 
@@ -27,8 +28,60 @@ import transformers
 from accelerate import Accelerator
 from datasets import Dataset, load_dataset, load_from_disk
 from peft import LoraConfig, PeftModel
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from trl import DataCollatorForCompletionOnlyLM, SFTConfig, SFTTrainer
+from peft.utils import SAFETENSORS_WEIGHTS_NAME
+from transformers import AutoModelForCausalLM, AutoTokenizer, TrainerCallback
+from trl import SFTConfig, SFTTrainer
+
+# The folder of a checkpoint that holds the copy of the adapter weights. It is two
+# levels below the checkpoint: the trainer loads every folder directly below a
+# checkpoint that holds adapter weights as one more adapter.
+ADAPTER_CHECKPOINT_FOLDER = os.path.join("fine_tune", "adapter")
+
+
+class AdapterCheckpointCallback(TrainerCallback):
+    """Saves a copy of the adapter weights in every checkpoint.
+
+    The fine-tuning can't resume from the checkpoints of the trainer alone. For a
+    model that is distributed with FSDP, the adapter weights of those checkpoints
+    are not restored (peft 0.20.0 and later).
+    """
+
+    def on_save(self, args, state, control, model=None, **kwargs):
+        checkpoint = os.path.join(args.output_dir, f"checkpoint-{state.global_step}")
+        # Every process has to call save_pretrained, as the weights are gathered
+        # from all of them. Only the main process writes the files.
+        model.save_pretrained(
+            os.path.join(checkpoint, ADAPTER_CHECKPOINT_FOLDER),
+            is_main_process=state.is_world_process_zero,
+        )
+
+
+def adapter_is_trained(model):
+    """Whether the LoRA weights of the model differ from their initial values."""
+    return any(
+        parameter.count_nonzero() > 0
+        for name, parameter in model.named_parameters()
+        if "lora_B" in name
+    )
+
+
+def get_resumable_checkpoint(model_path):
+    """Returns the newest checkpoint that has a copy of the adapter weights."""
+    checkpoints = {}
+    for path in glob.glob(f"{model_path}/checkpoint-*"):
+        match = re.fullmatch(r"checkpoint-(\d+)", os.path.basename(path))
+        if match:
+            checkpoints[int(match.group(1))] = path
+    for step in sorted(checkpoints, reverse=True):
+        adapter_weights = os.path.join(
+            checkpoints[step], ADAPTER_CHECKPOINT_FOLDER, SAFETENSORS_WEIGHTS_NAME
+        )
+        if os.path.isfile(adapter_weights):
+            return checkpoints[step]
+        logger.warning(
+            f"Ignoring the checkpoint {checkpoints[step]}, it has no copy of the adapter weights"
+        )
+    return None
 
 
 def graceful_shutdown(signal_number, stack_frame):
@@ -40,11 +93,15 @@ def graceful_shutdown(signal_number, stack_frame):
 
 
 def formatting_prompts_func(example):
-    output_texts = []
+    prompts = []
+    completions = []
     for i in range(len(example["prompt"])):
         text = f"""{example["prompt"][i]}\n{EOS_TOKEN}"""
-        output_texts.append(text)
-    return {"prompts": output_texts}
+        # The model is fine-tuned to generate the text after the delimiter
+        prompt, delimiter, completion = text.partition(INPUT_OUTPUT_DELIMITER)
+        prompts.append(f"{prompt}{delimiter}")
+        completions.append(completion)
+    return {"prompt": prompts, "completion": completions}
 
 
 def get_current_node_id_and_rank():
@@ -89,6 +146,9 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, graceful_shutdown)
 
     accelerator = Accelerator()
+
+    # The integrations to report the results and logs to
+    report_to = "none"
 
     if "MLFLOW_ENABLE" in os.environ and os.environ["MLFLOW_ENABLE"] == "true":
         import mlflow
@@ -152,6 +212,7 @@ if __name__ == "__main__":
 
         # logging of model parameters, metrics, and artifacts
         mlflow.autolog()
+        report_to = "mlflow"
 
     # The bucket which contains the training data
     training_data_bucket = os.environ["TRAINING_DATASET_BUCKET"]
@@ -178,15 +239,15 @@ if __name__ == "__main__":
         f"gs://{training_data_bucket}/{training_data_path}"
     )
 
-    logger.info("Data Formatting Started")
-    input_data = training_dataset.map(formatting_prompts_func, batched=True)
-    logger.info("Data Formatting Completed")
-
     INPUT_OUTPUT_DELIMITER = "<start_of_turn>model"
 
-    collator = DataCollatorForCompletionOnlyLM(
-        INPUT_OUTPUT_DELIMITER, tokenizer=tokenizer
+    logger.info("Data Formatting Started")
+    input_data = training_dataset.map(
+        formatting_prompts_func,
+        batched=True,
+        remove_columns=training_dataset.column_names,
     )
+    logger.info("Data Formatting Completed")
 
     ################################################################################
     # QLoRA parameters
@@ -237,7 +298,7 @@ if __name__ == "__main__":
     weight_decay = float(os.getenv("WEIGHT_DECAY", "0.001"))
 
     # Optimizer to use
-    optim = "paged_adamw_32bit"
+    optim = "adamw_torch"
 
     # Learning rate schedule
     lr_scheduler_type = "cosine"
@@ -250,7 +311,7 @@ if __name__ == "__main__":
 
     # Group sequences into batches with same length
     # Saves memory and speeds up training considerably
-    group_by_length = True
+    train_sampling_strategy = "group_by_length"
 
     # Save strategy: steps, epoch, no
     save_strategy = os.getenv("CHECKPOINT_SAVE_STRATEGY", "steps")
@@ -278,8 +339,8 @@ if __name__ == "__main__":
     logger.info("Loading base model started")
     model = AutoModelForCausalLM.from_pretrained(
         attn_implementation="eager",
+        dtype=torch.bfloat16,
         pretrained_model_name_or_path=model_name,
-        torch_dtype=torch.bfloat16,
     )
     model.config.use_cache = False
     model.config.pretraining_tp = 1
@@ -307,33 +368,30 @@ if __name__ == "__main__":
     # Set training parameters
     training_arguments = SFTConfig(
         bf16=bf16,
-        dataset_kwargs={
-            "add_special_tokens": False,  # We template with special tokens
-            "append_concat_token": False,  # No need to add additional separator token
-        },
-        dataset_text_field="prompts",
+        completion_only_loss=True,  # Fine-tune on the completions of the prompts
         disable_tqdm=True,
         fp16=fp16,
         gradient_accumulation_steps=gradient_accumulation_steps,
         gradient_checkpointing=gradient_checkpointing,
         gradient_checkpointing_kwargs={"use_reentrant": False},
-        group_by_length=group_by_length,
         log_on_each_node=False,
         logging_steps=logging_steps,
         learning_rate=learning_rate,
         lr_scheduler_type=lr_scheduler_type,
         max_grad_norm=max_grad_norm,
-        max_seq_length=max_seq_length,
+        max_length=max_seq_length,
         max_steps=max_steps,
         num_train_epochs=num_train_epochs,
         optim=optim,
         output_dir=save_model_path,
         packing=packing,
         per_device_train_batch_size=per_device_train_batch_size,
+        report_to=report_to,
         save_strategy=save_strategy,
         save_steps=save_steps,
         save_total_limit=save_total_limit,
-        warmup_ratio=warmup_ratio,
+        train_sampling_strategy=train_sampling_strategy,
+        warmup_steps=warmup_ratio,  # A value below 1 is a ratio of the training steps
         weight_decay=weight_decay,
     )
     logger.info("Configuring fine tuning completed")
@@ -341,18 +399,30 @@ if __name__ == "__main__":
     logger.info("Creating trainer started")
     trainer = SFTTrainer(
         args=training_arguments,
-        data_collator=collator,
+        callbacks=[AdapterCheckpointCallback()],
         model=model,
         peft_config=peft_config,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,
         train_dataset=input_data,
     )
     logger.info("Creating trainer completed")
 
     logger.info("Fine tuning started")
-    # Check for existing checkpoints
-    checkpoints_present = glob.glob(f"{save_model_path}/checkpoint-*") != []
-    trainer.train(resume_from_checkpoint=checkpoints_present)
+    # Resume from the newest checkpoint, when there is one
+    checkpoint = get_resumable_checkpoint(save_model_path)
+    if checkpoint is not None:
+        logger.info(f"Resuming from the checkpoint {checkpoint}")
+        # The adapter weights are loaded before the trainer distributes the model
+        load_result = trainer.model.load_adapter(
+            os.path.join(checkpoint, ADAPTER_CHECKPOINT_FOLDER),
+            adapter_name=trainer.model.active_adapter,
+            is_trainable=True,
+        )
+        if load_result.unexpected_keys or not adapter_is_trained(trainer.model):
+            raise RuntimeError(
+                f"The adapter weights of the checkpoint {checkpoint} were not restored"
+            )
+    trainer.train(resume_from_checkpoint=checkpoint)
     logger.info("Fine tuning completed")
 
     if "MLFLOW_ENABLE" in os.environ and os.environ["MLFLOW_ENABLE"] == "true":
@@ -371,15 +441,20 @@ if __name__ == "__main__":
     logger.info("Merging the new model with base model started")
     # Reload model in FP16 and merge it with LoRA weights
     base_model = AutoModelForCausalLM.from_pretrained(
+        dtype=torch.bfloat16,
         low_cpu_mem_usage=True,
         pretrained_model_name_or_path=model_name,
         return_dict=True,
-        torch_dtype=torch.bfloat16,
     )
     model = PeftModel.from_pretrained(
         model=base_model,
         model_id=new_model,
     )
+    # Without this check, a model without the fine-tuning would be saved
+    if not adapter_is_trained(model):
+        raise RuntimeError(
+            f"The adapter that was saved in '{new_model}' has no fine-tuned weights"
+        )
     model = model.merge_and_unload()
     logger.info("Merging the new model with base model completed")
 
@@ -391,7 +466,6 @@ if __name__ == "__main__":
     unwrapped_model.save_pretrained(
         is_main_process=accelerator.is_main_process,
         save_directory=save_model_path,
-        save_function=accelerator.save,
     )
     logger.info("Save unwrapped model completed")
 

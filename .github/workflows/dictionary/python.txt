@@ -51,6 +51,7 @@ getnframes
 getpid
 getsampwidth
 gmtime
+groupby
 grpcio
 gunicorn
 hasattr
@@ -104,6 +105,7 @@ pycparser
 pydantic
 pyenv
 pylint
+pylist
 pynvml
 pytest
 pythondontwritebytecode

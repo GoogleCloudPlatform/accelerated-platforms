@@ -32,14 +32,12 @@ spec:
       containers:
         - name: inference-server
           args:
-            - --model=$(MODEL)
+            - $(MODEL)
             - --tensor-parallel-size=2
           env:
             - name: MODEL
               value: /model-data/model-gemma2/experiment
-            - name: VLLM_ATTENTION_BACKEND
-              value: FLASHINFER
-          image: vllm/vllm-openai:v0.6.3.post1
+          image: vllm/vllm-openai:v0.34.0
           readinessProbe:
             failureThreshold: 3
             httpGet:

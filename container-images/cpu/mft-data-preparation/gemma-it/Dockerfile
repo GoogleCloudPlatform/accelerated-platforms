@@ -14,18 +14,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM python:3.12.4-slim
+FROM python:3.12.16-slim-bookworm
 
-RUN apt-get update && \
-  apt-get -y --no-install-recommends install python3-dev gcc python3-pip git && \
-  rm -rf /var/lib/apt/lists/*
+ENV PATH=/venv/bin:${PATH}
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
-COPY --from=primary requirements.txt /
+RUN pip install --upgrade pip \
+  && python -m venv /venv
 
-RUN pip3 install --no-cache-dir -r requirements.txt
+COPY --from=primary requirements.txt /venv/requirements.txt
 
-COPY --from=primary dataprep.py logging.conf openai_credentials_refresher.py /
+RUN pip install --no-cache-dir -r /venv/requirements.txt
 
-ENV PYTHONUNBUFFERED 1
+COPY --from=primary dataprep.py logging.conf /app/
+COPY --from=data-preparation datapreparation/*.py /app/datapreparation/
 
-CMD python3 /dataprep.py
+WORKDIR /app
+
+CMD ["python", "dataprep.py"]

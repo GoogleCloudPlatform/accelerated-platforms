@@ -70,16 +70,18 @@ def preprocess_finetuning():
         "py_modules": [
             "./datapreprocessing"
         ],  # Dynamically zips and ships local modules to workers
+        # pandas and pyarrow are not installed: the tasks run with the versions of
+        # the Ray cluster image, like the driver of the job, which exchanges data
+        # with them.
         "pip": [
-            "google-cloud-storage==2.19.0",
-            "spacy==3.7.6",
-            "jsonpickle==4.0.1",
-            "pandas==2.2.3",
-            "pydantic==2.10.5",
-            "pyarrow",
-            "gcsfs",
-            "transformers==5.9.0",
-            "diffusers==0.38.0",
+            "google-cloud-storage==3.17.1",
+            "spacy==3.8.18",
+            "jsonpickle==4.1.4",
+            "pydantic==2.14.3",
+            "fsspec==2026.9.0",
+            "gcsfs==2026.10.1",
+            "transformers==5.23.0",
+            "diffusers==0.43.0",
         ],
         "env_vars": {"PIP_NO_CACHE_DIR": "1", "PIP_DISABLE_PIP_VERSION_CHECK": "1"},
     }

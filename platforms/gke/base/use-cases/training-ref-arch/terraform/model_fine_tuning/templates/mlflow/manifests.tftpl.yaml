@@ -21,8 +21,10 @@ spec:
   selector:
     matchLabels:
       app: mlflow-tracking
+  # The tracking server keeps its data in a SQLite database file, which only one server
+  # at a time can use: stop the running server before a new one starts.
   strategy:
-    type: RollingUpdate
+    type: Recreate
   template:
     metadata:
       annotations:
@@ -32,10 +34,24 @@ spec:
     spec:
       containers:
         - args:
+            # Before the tracking server starts, the schema of the database is created or
+            # upgraded to the one of this MLflow version. An existing database is copied
+            # first, once for each MLflow version. The tracking server only answers
+            # requests for the allowed hosts.
             - |
-              mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri sqlite:///mlruns/mlflow.db
+              set -o errexit
+              if [ -f /mlruns/mlflow.db ] && [ ! -f /mlruns/mlflow.db.before-v${mlflow_version} ]; then
+                cp /mlruns/mlflow.db /mlruns/mlflow.db.before-v${mlflow_version}
+              fi
+              mlflow db upgrade sqlite:///mlruns/mlflow.db
+              exec mlflow server \
+              --allowed-hosts "${allowed_hosts}" \
+              --backend-store-uri sqlite:///mlruns/mlflow.db \
+              --cors-allowed-origins "${cors_allowed_origins}" \
+              --host 0.0.0.0 \
+              --port ${service_port}
           command: ["sh", "-c"]
-          image: ghcr.io/mlflow/mlflow:v2.15.1
+          image: ghcr.io/mlflow/mlflow:v${mlflow_version}
           name: mlflow
           resources:
             limits:
@@ -65,11 +81,29 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: mlflow-tracking-svc
+  name: ${service_name}
 spec:
   ports:
-    - port: 5000
+    - port: ${service_port}
       protocol: TCP
-      targetPort: 5000
+      targetPort: ${service_port}
   selector:
     app: mlflow-tracking
+---
+# The health check of the load balancer of the gateway doesn't send one of the allowed
+# hosts, the health endpoint of the tracking server answers requests for every host.
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: mlflow-tracking
+spec:
+  default:
+    config:
+      httpHealthCheck:
+        port: ${service_port}
+        requestPath: /health
+      type: HTTP
+  targetRef:
+    group: ""
+    kind: Service
+    name: ${service_name}

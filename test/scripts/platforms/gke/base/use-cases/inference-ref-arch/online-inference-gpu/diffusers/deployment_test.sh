@@ -31,6 +31,10 @@ if [[ -z "${ACCELERATOR_TYPE:-}" ]]; then
   exit 1
 fi
 
+# Stop the port forwarding process when a command fails and errexit ends the script.
+PF_PID=""
+trap 'if [[ -n "${PF_PID}" ]]; then kill -9 "${PF_PID}" 2>/dev/null || true; fi' EXIT
+
 for model in "${hf_gpu_diffusers_models[@]}"; do
   export HF_MODEL_ID=${model}
   source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"

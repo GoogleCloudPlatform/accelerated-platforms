@@ -26,10 +26,10 @@ source "${MY_PATH}/../../../terraform/_shared_config/scripts/set_environment_var
 
 "${MY_PATH}/../configure_deployment.sh"
 
-if [[ "${HF_MODEL_ID}" == "black-forest-labs/flux.1-schnell" ]]; then
+if [[ "${HF_MODEL_ID:-}" == "black-forest-labs/flux.1-schnell" ]]; then
   DIFFUSERS_CONTAINER_IMAGE_URL="${ira_online_gpu_diffusers_flux_image_url}"
   DIFFUSERS_INFERENCE_SERVER="diffusers"
-elif [[ "${HF_MODEL_ID}" == "black-forest-labs/flux.2-klein-4b" ]]; then
+elif [[ "${HF_MODEL_ID:-}" == "black-forest-labs/flux.2-klein-4b" ]]; then
   DIFFUSERS_CONTAINER_IMAGE_URL="${ira_online_gpu_diffusers_sglang_diffusers_image_url}"
   DIFFUSERS_INFERENCE_SERVER="sglang"
 else

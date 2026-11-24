@@ -40,6 +40,7 @@ declare -a hf_models=(
 
 declare -a hf_gpu_diffusers_models=(
   "black-forest-labs/flux.1-schnell"
+  "black-forest-labs/flux.2-klein-4b"
 )
 
 declare -a hf_gpu_dynamo_trtllm_models=(

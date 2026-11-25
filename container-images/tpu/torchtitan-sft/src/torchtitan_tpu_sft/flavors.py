@@ -79,7 +79,7 @@ def _register_flavor(
 
 
 def register_flavors() -> None:
-    """Registers the Gemma 4 12B and 12B-tiny flavors idempotently."""
+    """Registers the Gemma 4 12B and 12B-tiny flavors (idempotent)."""
     _register_flavor(
         FLAVOR_12B,
         vocab_size=262144,

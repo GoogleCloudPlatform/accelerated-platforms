@@ -1,0 +1,69 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+- op: add
+  path: /spec/replicatedJobs/0/template/spec/template/spec/containers/0/env/-
+  value:
+    name: TORCHTITAN_CONFIG
+    value: gemma4_12b_lora_sft
+- op: add
+  path: /spec/replicatedJobs/0/template/spec/template/spec/containers/0/env/-
+  value:
+    name: NNODES
+    value: "4"
+- op: add
+  path: /spec/replicatedJobs/0/template/spec/template/spec/containers/0/env/-
+  value:
+    name: NPROC_PER_NODE
+    value: "4"
+- op: add
+  path: /spec/replicatedJobs/0/template/spec/template/spec/containers/0/env/-
+  value:
+    name: STEPS
+    value: "100"
+- op: add
+  path: /spec/replicatedJobs/0/template/spec/template/spec/containers/0/env/-
+  value:
+    name: SEQ_LEN
+    value: "2048"
+- op: add
+  path: /spec/replicatedJobs/0/template/spec/template/spec/containers/0/env/-
+  value:
+    name: LOCAL_BATCH_SIZE
+    value: "1"
+- op: add
+  path: /spec/replicatedJobs/0/template/spec/template/spec/containers/0/env/-
+  value:
+    name: LORA_RANK
+    value: "16"
+- op: add
+  path: /spec/replicatedJobs/0/template/spec/template/spec/containers/0/env/-
+  value:
+    name: LORA_ALPHA
+    value: "32"
+- op: add
+  path: /spec/replicatedJobs/0/template/spec/template/spec/containers/0/env/-
+  value:
+    name: LEARNING_RATE
+    value: "1e-4"
+- op: add
+  path: /spec/replicatedJobs/0/template/spec/template/spec/containers/0/env/-
+  value:
+    name: LORA_MERGE_ENABLE
+    value: "true"
+- op: add
+  path: /spec/replicatedJobs/0/template/spec/template/spec/containers/0/env/-
+  value:
+    name: EVAL_EXPORT_ROWS
+    value: "32"

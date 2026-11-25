@@ -31,10 +31,13 @@ spec:
     #   reservations:
     #     affinity: Specific
     #     specific:
-    #       - name: tpu-v6e-slice-specific
-    #         reservationBlock:
-    #           name: <RESERVATION_NAME>
+    #       - name: <RESERVATION_NAME>
+    #         zones:
+    #           - <ZONE>
     #   spot: false
+    #   storage:
+    #     bootDiskSize: 200
+    #     bootDiskType: hyperdisk-balanced
     #   tpu:
     #     count: 8
     #     topology: 2x4
@@ -44,6 +47,9 @@ spec:
     - machineType: ct6e-standard-8t
       maxPodsPerNode: 32
       spot: false
+      storage:
+        bootDiskSize: 200
+        bootDiskType: hyperdisk-balanced
       tpu:
         count: 8
         topology: 2x4
@@ -57,6 +63,9 @@ spec:
       machineType: ct6e-standard-8t
       maxPodsPerNode: 32
       maxRunDurationSeconds: 604800
+      storage:
+        bootDiskSize: 200
+        bootDiskType: hyperdisk-balanced
       tpu:
         count: 8
         topology: 2x4
@@ -70,6 +79,9 @@ spec:
       machineType: ct6e-standard-8t
       maxPodsPerNode: 32
       maxRunDurationSeconds: 86400
+      storage:
+        bootDiskSize: 200
+        bootDiskType: hyperdisk-balanced
       tpu:
         count: 8
         topology: 2x4
@@ -79,6 +91,9 @@ spec:
     - machineType: ct6e-standard-8t
       maxPodsPerNode: 32
       spot: true
+      storage:
+        bootDiskSize: 200
+        bootDiskType: hyperdisk-balanced
       tpu:
         count: 8
         topology: 2x4

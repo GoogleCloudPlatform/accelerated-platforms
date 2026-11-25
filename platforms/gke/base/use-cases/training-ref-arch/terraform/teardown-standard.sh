@@ -72,6 +72,7 @@ if [ "${ACP_TEARDOWN_CORE_PLATFORM}" = "true" ]; then
     "huggingface/initialize"
     "cloudbuild/initialize"
     "workloads/kueue"
+    "workloads/jobset"
     "custom_compute_class"
     "workloads/cluster_credentials"
     "container_cluster"

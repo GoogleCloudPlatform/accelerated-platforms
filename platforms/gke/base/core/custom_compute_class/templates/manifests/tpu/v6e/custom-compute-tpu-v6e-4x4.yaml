@@ -1,0 +1,100 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: cloud.google.com/v1
+kind: ComputeClass
+metadata:
+  name: tpu-v6e-4x4
+spec:
+  activeMigration:
+    optimizeRulePriority: true
+  nodePoolConfig:
+    imageStreaming:
+      enabled: true
+  nodePoolAutoCreation:
+    enabled: true
+  priorities:
+    # Use a specific reservation
+    # - machineType: ct6e-standard-4t
+    #   maxPodsPerNode: 32
+    #   reservations:
+    #     affinity: Specific
+    #     specific:
+    #       - name: <RESERVATION_NAME>
+    #         zones:
+    #           - <ZONE>
+    #   spot: false
+    #   storage:
+    #     bootDiskSize: 200
+    #     bootDiskType: hyperdisk-balanced
+    #   tpu:
+    #     count: 4
+    #     topology: 4x4
+    #     type: tpu-v6e-slice
+
+    # Use on-demand
+    - machineType: ct6e-standard-4t
+      maxPodsPerNode: 32
+      spot: false
+      storage:
+        bootDiskSize: 200
+        bootDiskType: hyperdisk-balanced
+      tpu:
+        count: 4
+        topology: 4x4
+        type: tpu-v6e-slice
+
+    # Use DWS FlexStart with 7 day limit
+    - flexStart:
+        enabled: true
+        nodeRecycling:
+          leadTimeSeconds: 3600
+      machineType: ct6e-standard-4t
+      maxPodsPerNode: 32
+      maxRunDurationSeconds: 604800
+      storage:
+        bootDiskSize: 200
+        bootDiskType: hyperdisk-balanced
+      tpu:
+        count: 4
+        topology: 4x4
+        type: tpu-v6e-slice
+
+    # Use DWS FlexStart with 1 day limit
+    - flexStart:
+        enabled: true
+        nodeRecycling:
+          leadTimeSeconds: 3600
+      machineType: ct6e-standard-4t
+      maxPodsPerNode: 32
+      maxRunDurationSeconds: 86400
+      storage:
+        bootDiskSize: 200
+        bootDiskType: hyperdisk-balanced
+      tpu:
+        count: 4
+        topology: 4x4
+        type: tpu-v6e-slice
+
+    # Use spot
+    - machineType: ct6e-standard-4t
+      maxPodsPerNode: 32
+      spot: true
+      storage:
+        bootDiskSize: 200
+        bootDiskType: hyperdisk-balanced
+      tpu:
+        count: 4
+        topology: 4x4
+        type: tpu-v6e-slice

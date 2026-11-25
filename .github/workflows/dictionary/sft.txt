@@ -1,4 +1,17 @@
 colocates
+debugmodel
+heldout
+iamtarun
+libgoogle
+libtcmalloc
+microbatch
 multislice
+nnodes
+perftools
+procps
+sdpa
 tflop
 tflops
+torchrun
+torchtitan
+vmem

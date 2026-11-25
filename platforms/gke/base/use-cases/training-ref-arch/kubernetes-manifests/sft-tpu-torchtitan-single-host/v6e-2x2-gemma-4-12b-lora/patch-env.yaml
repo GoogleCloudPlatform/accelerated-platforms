@@ -1,0 +1,45 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: tt-sft-sh
+  namespace: replaced-by-kustomize
+spec:
+  template:
+    spec:
+      containers:
+        - name: sft-trainer
+          env:
+            - name: TORCHTITAN_CONFIG
+              value: gemma4_12b_lora_sft
+            - name: NPROC_PER_NODE
+              value: "4"
+            - name: STEPS
+              value: "100"
+            - name: SEQ_LEN
+              value: "2048"
+            - name: LOCAL_BATCH_SIZE
+              value: "1"
+            - name: LORA_RANK
+              value: "16"
+            - name: LORA_ALPHA
+              value: "32"
+            - name: LEARNING_RATE
+              value: "1e-4"
+            - name: LORA_MERGE_ENABLE
+              value: "true"
+            - name: EVAL_EXPORT_ROWS
+              value: "32"

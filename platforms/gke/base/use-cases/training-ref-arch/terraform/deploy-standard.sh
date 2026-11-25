@@ -43,6 +43,7 @@ declare -a CORE_TERRASERVICES_APPLY=(
   "container_cluster"
   "workloads/cluster_credentials"
   "custom_compute_class"
+  "workloads/jobset"
   "workloads/kueue"
   "cloudbuild/initialize"
   "huggingface/initialize"

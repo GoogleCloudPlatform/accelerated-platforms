@@ -1,0 +1,101 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: train-script
+  namespace: replaced-by-kustomize
+data:
+  train.sh: |
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    ulimit -c 0
+
+    if [[ -z "${HF_TOKEN:-}" && -f "/var/run/secrets/huggingface.co/token" ]]; then
+      HF_TOKEN="$(cat /var/run/secrets/huggingface.co/token)"
+      export HF_TOKEN
+    fi
+    if [[ -z "${HF_TOKEN:-}" ]]; then
+      unset HF_TOKEN
+    fi
+
+    export HF_HOME="/tmp/hf-cache"
+    export HF_ASSETS_PATH="/gcs/hf-models/${HF_MODEL_ID}"
+    export DUMP_FOLDER="/gcs/runs/${RUN_NAME}"
+    export PJRT_DEVICE="TPU"
+    export TORCH_TPU_DEFER_AND_FUSE="1"
+    export TORCH_TPU_TIER3_COMPILATION_CACHE_ROOT="${TORCH_TPU_TIER3_COMPILATION_CACHE_ROOT:-/tmp/xla-cache}"
+    export LIBTPU_INIT_ARGS="--xla_tpu_scoped_vmem_limit_kib=65536 --xla_enable_async_all_gather=true --xla_enable_async_collective_permute=true"
+
+    mkdir -p "${HF_HOME}" "${DUMP_FOLDER}" "${TORCH_TPU_TIER3_COMPILATION_CACHE_ROOT}"
+
+    if [[ ! -f "${HF_ASSETS_PATH}/.ready" ]]; then
+      echo "[train.sh] Staging base model ${HF_MODEL_ID} to ${HF_ASSETS_PATH}..."
+      mkdir -p "${HF_ASSETS_PATH}"
+      python3 -c "import os; from huggingface_hub import snapshot_download; snapshot_download(repo_id=os.environ['HF_MODEL_ID'], local_dir=os.environ['HF_ASSETS_PATH'])"
+      touch "${HF_ASSETS_PATH}/.ready"
+    fi
+
+    STEPS="${STEPS:-100}"
+    SEQ_LEN="${SEQ_LEN:-2048}"
+    LOCAL_BATCH_SIZE="${LOCAL_BATCH_SIZE:-1}"
+    TOKENS_PER_RANK=$(( LOCAL_BATCH_SIZE * SEQ_LEN ))
+
+    echo "[train.sh] Pre-caching dataset into host-local ${HF_HOME}..."
+    TORCH_DEVICE_BACKEND_AUTOLOAD=0 python3 -c "import os, datasets; datasets.load_dataset(os.environ.get('HF_DATASET_PATH', 'iamtarun/python_code_instructions_18k_alpaca'), split=os.environ.get('HF_DATASET_SPLIT') or 'train')"
+
+    echo "[train.sh] Starting single-host TorchTitan TPU SFT..."
+    echo "  Model:  ${HF_MODEL_ID}"
+    echo "  Config: ${TORCHTITAN_CONFIG:-gemma4_12b_lora_sft}"
+    echo "  Steps:  ${STEPS} (tokens/chip/step=${TOKENS_PER_RANK})"
+    echo "  Output: ${DUMP_FOLDER}"
+
+    rm -rf "${DUMP_FOLDER}/checkpoint"
+
+    torchrun \
+      --nproc_per_node="${NPROC_PER_NODE:-4}" \
+      --rdzv_backend=c10d \
+      --rdzv_endpoint="127.0.0.1:${MASTER_PORT:-29501}" \
+      -m torchtitan.experiments.tpu.train \
+      --module=torchtitan_tpu_sft \
+      --config="${TORCHTITAN_CONFIG:-gemma4_12b_lora_sft}" \
+      --hf_assets_path="${HF_ASSETS_PATH}" \
+      --dump_folder="${DUMP_FOLDER}" \
+      --training.steps="${STEPS}" \
+      --training.max_context_length="${SEQ_LEN}" \
+      --training.num_tokens_per_microbatch_per_dp_rank="${TOKENS_PER_RANK}"
+
+    if [[ "${LORA_MERGE_ENABLE:-true}" == "true" ]]; then
+      echo "[train.sh] Exporting PEFT adapter and merged checkpoint..."
+      TORCH_DEVICE_BACKEND_AUTOLOAD=0 python3 -m torchtitan_tpu_sft.merge_lora \
+        --base "${HF_ASSETS_PATH}" \
+        --adapter "${DUMP_FOLDER}/checkpoint/step-${STEPS}" \
+        --alpha "${LORA_ALPHA:-32}" \
+        --out "${DUMP_FOLDER}/export"
+    fi
+
+    if [[ "${EVAL_EXPORT_ROWS:-32}" -gt 0 && "${LORA_MERGE_ENABLE:-true}" == "true" ]]; then
+      echo "[train.sh] Evaluating base vs LoRA-merged checkpoint on held-out rows..."
+      TORCH_DEVICE_BACKEND_AUTOLOAD=0 python3 -m torchtitan_tpu_sft.eval_export \
+        --base "${HF_ASSETS_PATH}" \
+        --adapter "${DUMP_FOLDER}/export/adapter" \
+        --out "${DUMP_FOLDER}/export/eval.json" \
+        --dataset "${HF_DATASET_PATH:-iamtarun/python_code_instructions_18k_alpaca}" \
+        --rows "${EVAL_EXPORT_ROWS:-32}" \
+        --holdout "${HOLDOUT_ROWS:-512}"
+    fi
+
+    echo "[train.sh] Single-host TorchTitan SFT complete. Artifacts under ${DUMP_FOLDER}."

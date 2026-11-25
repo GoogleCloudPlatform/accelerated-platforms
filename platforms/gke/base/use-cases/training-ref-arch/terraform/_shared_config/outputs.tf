@@ -120,3 +120,31 @@ output "sft_mlflow_data_bucket_name" {
   value = local.sft_mlflow_data_bucket_name
 }
 
+output "sft_tpu_torchtitan_image_url" {
+  value = local.sft_tpu_torchtitan_image_url
+}
+
+output "sft_tpu_torchtitan_single_host_dataset_bucket_name" {
+  value = local.sft_tpu_torchtitan_single_host_dataset_bucket_name
+}
+
+output "sft_tpu_torchtitan_single_host_kubernetes_namespace_name" {
+  value = local.sft_tpu_torchtitan_single_host_kubernetes_namespace_name
+}
+
+output "sft_tpu_torchtitan_single_host_kubernetes_service_account_name" {
+  value = local.sft_tpu_torchtitan_single_host_kubernetes_service_account_name
+}
+
+output "sft_tpu_torchtitan_multi_host_dataset_bucket_name" {
+  value = local.sft_tpu_torchtitan_multi_host_dataset_bucket_name
+}
+
+output "sft_tpu_torchtitan_multi_host_kubernetes_namespace_name" {
+  value = local.sft_tpu_torchtitan_multi_host_kubernetes_namespace_name
+}
+
+output "sft_tpu_torchtitan_multi_host_kubernetes_service_account_name" {
+  value = local.sft_tpu_torchtitan_multi_host_kubernetes_service_account_name
+}
+

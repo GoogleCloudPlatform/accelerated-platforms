@@ -1,0 +1,45 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Ignore repository directories and files not needed for the TorchTitan TPU SFT build
+.dev-tools/
+.devcontainer/
+.github/
+.terraform.d/
+container-images/cpu/
+container-images/gpu/
+container-images/tpu/max-diffusion-sdxl/
+container-images/tpu/torchtitan-sft/cloudbuild.yaml
+docs/
+modules/
+platforms/
+projects/
+skills/
+terraform/
+test/
+tools/
+/use-cases
+.coveragerc
+.editorconfig
+.gitignore
+.prettierrc
+CONTRIBUTING.md
+cspell.json
+LICENSE
+README.md
+requirements.txt
+run_python_coverage_test.sh
+run_python_unittests.sh
+**/__pycache__/
+**/*.pyc
